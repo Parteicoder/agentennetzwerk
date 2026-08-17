@@ -19,16 +19,24 @@ if ! command -v grok >/dev/null 2>&1 || ! grok version >/dev/null 2>&1; then
   missing+=("grok")
 fi
 
-[ ${#missing[@]} -eq 0 ] && exit 0
-
 mkdir -p "$STATE_DIR" >/dev/null 2>&1 || true
-# Best-effort cleanup of stale per-session markers.
 find "$STATE_DIR" -type f -name 'deps-*' -mtime +7 -delete >/dev/null 2>&1 || true
-[ -f "$MARKER" ] && exit 0
-: > "$MARKER" 2>/dev/null || true
+
+if [ ${#missing[@]} -eq 0 ]; then
+  # Tiny invisible context lets the skill distinguish "all ready" from "hook did not run".
+  printf '{"hookSpecificOutput":{"hookEventName":"UserPromptExpansion","additionalContext":"SOFT_DEPENDENCY_STATUS missing=none"}}\n'
+  exit 0
+fi
 
 missing_text="$(IFS=', '; echo "${missing[*]}")"
 
-printf '{"systemMessage":"Agentennetzwerk: optional tool(s) unavailable: %s. The plugin will continue with reduced capabilities. Run /agentennetzwerk:doctor for details.","hookSpecificOutput":{"hookEventName":"UserPromptExpansion","additionalContext":"SOFT_DEPENDENCY_STATUS missing=%s. Continue without blocking. If codex is missing use claude-builder as the only writer. If grok is missing omit the external breaker and use a targeted Claude reviewer only when useful. If git is missing avoid Git-dependent claims. Do not install or authenticate tools automatically."}}\n' "$missing_text" "$missing_text"
+if [ -f "$MARKER" ]; then
+  # Keep supplying status to the supervisor, but do not repeat the user-facing warning.
+  printf '{"hookSpecificOutput":{"hookEventName":"UserPromptExpansion","additionalContext":"SOFT_DEPENDENCY_STATUS missing=%s. Continue without blocking. If codex is missing use agentennetzwerk:claude-builder as the only writer. If grok is missing omit the external breaker and use a targeted Claude reviewer only when useful. If git is missing avoid Git-dependent claims. Do not install or authenticate tools automatically."}}\n' "$missing_text"
+  exit 0
+fi
+
+: > "$MARKER" 2>/dev/null || true
+printf '{"systemMessage":"Agentennetzwerk: optional tool(s) unavailable: %s. The plugin will continue with reduced capabilities. Run /agentennetzwerk:doctor for details.","hookSpecificOutput":{"hookEventName":"UserPromptExpansion","additionalContext":"SOFT_DEPENDENCY_STATUS missing=%s. Continue without blocking. If codex is missing use agentennetzwerk:claude-builder as the only writer. If grok is missing omit the external breaker and use a targeted Claude reviewer only when useful. If git is missing avoid Git-dependent claims. Do not install or authenticate tools automatically."}}\n' "$missing_text" "$missing_text"
 
 exit 0
