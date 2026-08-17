@@ -38,7 +38,72 @@ Agentennetzwerk does not force a Claude model. Use Claude Code's normal model se
 /model
 ```
 
-Choose Sonnet or Opus. Plugin subagents use `model: inherit`, so they follow the main Claude Code session model. Token savings come from smaller context, fewer calls, bounded turns, and early exits, not from silently downgrading the model.
+Choose Sonnet or Opus. Plugin subagents use `model: inherit`, so they follow the main Claude Code session model. Token savings come from smaller context, fewer calls, bounded turns, early exits, and proactive compaction, not from silently downgrading the model.
+
+## 60% auto-compaction policy
+
+Agentennetzwerk targets proactive context compaction at **60%** so long coding runs keep more headroom instead of waiting until the context window is nearly full.
+
+Run once:
+
+```text
+/agentennetzwerk:autocompact 60
+```
+
+The command preserves unrelated configuration and configures each engine only through settings it actually supports.
+
+### Claude Code
+
+Claude Code has a native percentage override:
+
+```text
+CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=60
+```
+
+The setup command merges this into the `env` section of the user's `~/.claude/settings.json`. Claude Code applies the threshold to the main conversation and its subagents. Restart Claude Code after changing it so the running process definitely uses the new value.
+
+### Grok Build
+
+Grok Build has a native percentage setting:
+
+```toml
+[session]
+auto_compact_threshold_percent = 60
+```
+
+The setup command preserves the rest of `~/.grok/config.toml` and updates only this key. New Grok sessions then compact at the configured threshold.
+
+### Codex
+
+Codex currently exposes auto-compaction as an **absolute token limit**, not a percentage setting:
+
+```toml
+model_auto_compact_token_limit = 163200
+```
+
+Therefore Agentennetzwerk only claims exact 60% for Codex when the same configuration scope already contains a verified explicit context window such as:
+
+```toml
+model_context_window = 272000
+```
+
+It then computes:
+
+```text
+floor(272000 × 0.60) = 163200
+```
+
+and writes the corresponding absolute threshold. If Codex resolves the model context window dynamically and no explicit window is present, Agentennetzwerk does **not** guess from the model name and reports `NOT PINNED` instead.
+
+This is intentional: a false "60%" label would be worse than accurately reporting that Codex's exact percentage cannot be proven from local configuration.
+
+Check the factual state at any time:
+
+```text
+/agentennetzwerk:doctor
+```
+
+The doctor reports `EXACT 60%`, `CONFIGURED / RESTART REQUIRED`, `OTHER`, `DEFAULT`, or `NOT PINNED` as appropriate.
 
 ## Optional dependencies
 
@@ -62,12 +127,6 @@ Grok missing     -> targeted Claude review remains available
 
 Git available    -> diff/status/branch verification available
 Git missing      -> file-based workflow without Git guarantees
-```
-
-Check the local setup at any time:
-
-```text
-/agentennetzwerk:doctor
 ```
 
 ## Factual token telemetry
@@ -100,8 +159,6 @@ Therefore Agentennetzwerk deliberately does **not** calculate:
 skipped calls × guessed average tokens = "tokens saved"
 ```
 
-That would be an estimate disguised as a fact.
-
 Without a controlled measured A/B baseline, the command reports:
 
 ```text
@@ -114,6 +171,7 @@ Unused call slots are shown as a call count, never converted into fake token sav
 
 The plugin keeps Sonnet or Opus fully available while reducing unnecessary work:
 
+- proactive 60% compaction where the engine supports a verifiable threshold
 - only task-relevant agents are started
 - the orchestration skill is manual-only and loads only when invoked
 - subagents keep exploration and logs outside the main context
@@ -203,6 +261,8 @@ Grok is used as a breaker/reviewer rather than a second writer. Review runs are 
 - code and real checks matter more than model agreement
 - only the minimum useful context is passed between agents
 - token reporting distinguishes measured facts from counterfactual estimates
+- auto-compaction is never disabled by the workflow
+- Codex context-window sizes are never guessed
 
 ## Development
 
@@ -217,6 +277,7 @@ claude --plugin-dir ./plugins/agentennetzwerk
 Then inside Claude Code:
 
 ```text
+/agentennetzwerk:autocompact 60
 /agentennetzwerk:doctor
 /agentennetzwerk:start standard Implement a small test change
 /agentennetzwerk:savings
@@ -242,6 +303,7 @@ agentennetzwerk/
 │   ├── skills/
 │   │   ├── start/SKILL.md
 │   │   ├── doctor/SKILL.md
+│   │   ├── autocompact/SKILL.md
 │   │   └── savings/SKILL.md
 │   └── agents/
 │       ├── claude-builder.md
