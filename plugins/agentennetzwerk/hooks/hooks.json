@@ -30,9 +30,26 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "^Skill$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/check-dependencies.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/telemetry-start.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "SubagentStop": [
       {
-        "matcher": "^agentennetzwerk:(claude-builder|repo-explorer|architect|qa-reviewer|regression-hunter|security-reviewer|final-judge)$",
+        "matcher": "^agentennetzwerk:(claude-builder|architect|reviewer|security-reviewer)$",
         "hooks": [
           {
             "type": "command",
