@@ -5,13 +5,13 @@
     "url": "https://github.com/Parteicoder"
   },
   "description": "Claude Code plugins by Parteicoder for multi-agent development.",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "plugins": [
     {
       "name": "agentennetzwerk",
       "displayName": "Agentennetzwerk",
       "source": "./plugins/agentennetzwerk",
-      "description": "Token-efficient coding council with inherited Sonnet/Opus selection, factual local token telemetry, optional Codex and Grok, and Claude fallbacks.",
+      "description": "Token-efficient coding council with inherited Sonnet/Opus selection, 60% context-compaction policy, factual local token telemetry, optional Codex and Grok, and Claude fallbacks.",
       "author": {
         "name": "Parteicoder",
         "url": "https://github.com/Parteicoder"
@@ -20,7 +20,7 @@
       "repository": "https://github.com/Parteicoder/agentennetzwerk",
       "license": "AGPL-3.0",
       "category": "development",
-      "tags": ["multi-agent", "coding", "claude-code", "codex", "grok", "coding-agents", "token-efficient", "token-telemetry"]
+      "tags": ["multi-agent", "coding", "claude-code", "codex", "grok", "coding-agents", "token-efficient", "token-telemetry", "auto-compact"]
     }
   ]
 }
