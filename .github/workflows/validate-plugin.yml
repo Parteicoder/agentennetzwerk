@@ -37,5 +37,14 @@ jobs:
           jq empty plugins/agentennetzwerk/.claude-plugin/plugin.json
           jq empty plugins/agentennetzwerk/hooks/hooks.json
 
-      - name: Validate Bash dependency probe
-        run: bash -n plugins/agentennetzwerk/scripts/check-dependencies.sh
+      - name: Validate Bash scripts
+        run: bash -n plugins/agentennetzwerk/scripts/*.sh
+
+      - name: Test factual token parser
+        run: |
+          cat > /tmp/agentennetzwerk-token-test.jsonl <<'EOF'
+          {"type":"assistant","message":{"id":"msg_test_1","usage":{"input_tokens":10,"cache_creation_input_tokens":20,"cache_read_input_tokens":30,"output_tokens":40}}}
+          {"type":"assistant","message":{"id":"msg_test_2","usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":15,"output_tokens":10}}}
+          EOF
+          result="$(bash plugins/agentennetzwerk/scripts/token-usage.sh /tmp/agentennetzwerk-token-test.jsonl)"
+          test "$result" = "130"
