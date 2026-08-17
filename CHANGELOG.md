@@ -10,9 +10,13 @@ All notable Agentennetzwerk changes are documented here.
 - Added early-exit behavior when QA and relevant checks are already clean.
 - Added compact direct handoffs to avoid repeated supervisor summarization.
 - Added `/agentennetzwerk:doctor` for non-destructive local dependency diagnostics.
-- Improved the soft dependency probe: executable checks, stale marker cleanup, and clearer fallbacks.
+- Improved the soft dependency probe: executable checks, stale marker cleanup, persistent hidden status, one visible warning per session, and clearer fallbacks.
+- Added a current-shell fallback probe if the dependency hook is unavailable.
+- Scoped all plugin-agent references as `agentennetzwerk:<agent>` to avoid collisions with project or user agents.
 - Hardened recommended Codex usage with ephemeral `workspace-write` runs and stdin prompts where practical.
-- Bounded Grok breaker runs and disabled unnecessary subagents/memory/web search in the recommended review shape.
+- Hardened Grok review runs with bounded turns, disabled unnecessary subagents/memory/web search, and explicit edit-tool denial.
+- Added GitHub Actions validation for marketplace/plugin metadata, JSON syntax, and Bash script syntax.
+- Removed the duplicated plugin version from the marketplace entry so `plugin.json` is the single plugin-version source.
 - Standardized public documentation and internal agent prompts in English.
 
 ## 0.3.1 - 2026-08-17
