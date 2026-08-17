@@ -1,10 +1,10 @@
 # Agentennetzwerk
 
-A prompt-driven, token-efficient multi-agent coding network for Claude Code.
+A lightweight, token-efficient multi-agent coding workflow for Claude Code.
 
-Claude Code is the supervisor. Codex CLI is the preferred writer when available. Grok Build can act as an independent breaker/reviewer. Specialized Claude subagents handle planning, QA, regression, security, and final review. Missing external AIs do not block the plugin; Claude fallbacks remain available.
+Claude Code is the supervisor. Codex CLI is the preferred single writer when available. Grok Build is an optional independent breaker/reviewer. Claude plugin subagents provide a small set of focused fallbacks and reviews.
 
-There is no Python, Node.js, or server-side orchestrator.
+There is no Python/Node orchestration server, no custom agent runtime, and no automatic merge/release authority.
 
 ## Install
 
@@ -16,184 +16,191 @@ Inside Claude Code:
 /reload-plugins
 ```
 
-Start a task:
+## Use it naturally or explicitly
+
+The start skill can be selected by Claude when you explicitly ask for Agentennetzwerk or a coordinated multi-agent coding workflow:
+
+```text
+Use Agentennetzwerk to fix the import race and verify the regression risk.
+```
+
+Ordinary coding requests should stay on Claude Code's normal path. The skill description is intentionally narrow so the network does not add model calls to every task.
+
+The deterministic manual form remains available:
 
 ```text
 /agentennetzwerk:start <task>
+/agentennetzwerk:start quick <task>
+/agentennetzwerk:start standard <task>
+/agentennetzwerk:start deep <task>
 ```
 
-Optional modes:
+## Design goal
 
-```text
-/agentennetzwerk:start quick Fix the null pointer in the import flow
-/agentennetzwerk:start standard Add a search feature
-/agentennetzwerk:start deep Redesign the synchronization architecture
-```
+**Maximum code quality per token with minimum custom infrastructure.**
 
-## Update policy: check automatically, install manually
+Agentennetzwerk follows a few rules:
 
-Agentennetzwerk does **not** auto-install its own updates.
+- one writer at a time
+- decision-complete, source-light handoffs
+- agents read the worktree instead of receiving pasted source
+- real diffs/tests beat model agreement
+- risk-specific review instead of reviewer swarms
+- early exit when evidence is already clean
+- native Claude Code features are preferred over rebuilding orchestration features
+- no automatic commit, push, merge, release, dependency install, or destructive reset
 
-On Claude Code startup or resume, the plugin performs a lightweight GitHub version check at most once every 24 hours. If the check fails because the network or `curl` is unavailable, startup continues normally.
+## Four Claude roles
 
-When a newer release exists, you get a notice such as:
+v0.8 reduces the plugin from seven Claude agents to four:
 
-```text
-Agentennetzwerk update available: 0.7.0 -> 0.8.0.
-Run /agentennetzwerk:update to install it manually.
-```
+- `agentennetzwerk:claude-builder` - fallback single writer when Codex is unavailable
+- `agentennetzwerk:architect` - targeted repository exploration + compact planning for non-trivial work
+- `agentennetzwerk:reviewer` - correctness, requirements, tests, compatibility, and regression review
+- `agentennetzwerk:security-reviewer` - security/privacy/data-integrity review only when a real trust boundary is touched
 
-Nothing changes until you explicitly run:
+The supervisor now handles ordinary scouting and the final readiness decision. Separate `repo-explorer`, `regression-hunter`, and `final-judge` calls were removed because they duplicated work that can usually be handled in the supervisor, architect, or consolidated reviewer.
 
-```text
-/agentennetzwerk:update
-```
+All Claude plugin agents use `model: inherit`, so they follow the model and effort selected in the main Claude Code session.
 
-That command is the user approval. It refreshes the `parteicoder-agenten` marketplace and runs Claude Code's native plugin updater for `agentennetzwerk@parteicoder-agenten`.
-
-After a successful update, run:
-
-```text
-/reload-plugins
-```
-
-The current session is never silently reloaded. Automatic marketplace/plugin auto-update is not required for this workflow and can remain disabled.
-
-`/agentennetzwerk:doctor` shows the last locally cached update state without making another network request.
-
-## Choose the Claude model first
-
-Agentennetzwerk does not force a Claude model. Use Claude Code's normal model selector before starting:
-
-```text
-/model
-```
-
-Choose Sonnet or Opus. Plugin subagents use `model: inherit`, so they follow the main Claude Code session model. Token efficiency comes from smaller context, fewer calls, bounded turns, early exits, and proactive compaction, not from silently downgrading the model.
-
-## 60% auto-compaction policy
-
-Configure proactive context compaction once:
-
-```text
-/agentennetzwerk:autocompact 60
-```
-
-Claude Code and Grok Build support percentage-based thresholds directly. Codex currently exposes an absolute token threshold, so Agentennetzwerk only claims exact 60% when an explicit Codex context window is available in local configuration. It never guesses a context-window size from a model name.
-
-Check the factual state with:
-
-```text
-/agentennetzwerk:doctor
-```
-
-The doctor distinguishes exact settings, restart-required states, defaults, and Codex `NOT PINNED` states.
-
-## Optional dependencies and fallbacks
-
-For the full network:
-
-- Claude Code
-- Git
-- Codex CLI
-- Grok Build CLI
-
-Codex and Grok must be installed and authenticated separately. Agentennetzwerk never installs, updates, or logs into external coding CLIs automatically.
-
-```text
-Codex available  -> Codex is the preferred single writer
-Codex missing    -> agentennetzwerk:claude-builder is the writer
-
-Grok available   -> optional independent breaker/reviewer
-Grok missing     -> targeted Claude review remains available
-
-Git available    -> diff/status/branch verification available
-Git missing      -> file-based workflow without Git guarantees
-```
-
-Missing dependencies produce a soft limitation notice instead of blocking the plugin.
-
-## Workflow modes
-
-### quick
-
-For small local changes:
-
-```text
-Writer -> QA -> relevant checks -> stop
-```
-
-Target budget: up to 3 model/agent calls.
-
-### standard
-
-For normal features, bug fixes, and refactoring:
-
-```text
-optional Explorer/Architect -> Writer -> QA -> risk-specific review -> checks
-```
-
-Target budget: up to 5 calls. Regression, security, Grok, and Final Judge stages are used only when they add real value.
-
-### deep
-
-For architecture, migrations, synchronization, security, data models, or other high-risk work:
-
-```text
-Explorer -> Architect -> Writer -> targeted reviewers + optional Grok -> Final Judge
-```
-
-Target budget: up to 8 calls, with at most two repair reruns.
-
-These budgets are ceilings, not quotas. The supervisor should stop early whenever the acceptance criteria, QA, and relevant checks are already clean.
-
-## Claude agents
-
-- `agentennetzwerk:claude-builder` — fallback single writer when Codex is unavailable
-- `agentennetzwerk:repo-explorer` — minimal read-only repository scouting
-- `agentennetzwerk:architect` — compact planning for non-trivial work
-- `agentennetzwerk:qa-reviewer` — requirements, behavior, and test review
-- `agentennetzwerk:regression-hunter` — compatibility/migration/regression review
-- `agentennetzwerk:security-reviewer` — security, privacy, and data-integrity review
-- `agentennetzwerk:final-judge` — evidence-based final decision for deep or disputed runs
-
-All Claude agents inherit the model selected in the main Claude Code session.
-
-## External coding AIs
+## Writer and reviewer model
 
 ### Codex
 
-When available, Codex is the preferred writer. Agentennetzwerk prefers an ephemeral workspace-limited run:
+When available, Codex is the preferred writer. The workflow prefers a fresh workspace-limited invocation:
 
 ```text
 codex exec --ephemeral --sandbox workspace-write -
 ```
 
-The workflow does not use `danger-full-access`, and Codex is instructed not to commit, push, merge, or reset unrelated work.
+The writer receives a compact packet with acceptance criteria, resolved decisions, relevant paths/symbols, risks, and checks. Source code normally stays in the worktree.
 
-### Grok Build
+### Claude fallback
 
-Grok is a breaker/reviewer, not a second writer. Review runs are bounded and remove edit capability when supported. Agentennetzwerk does not use `--always-approve` for Grok reviews.
+If Codex is unavailable, `agentennetzwerk:claude-builder` becomes the single writer. Missing Codex never blocks the task.
 
-## Factual token telemetry
+### Grok
 
-Starting with 0.5.0, Agentennetzwerk records local token telemetry for its Claude runs by reading the real usage fields written by Claude Code to main-session and subagent JSONL transcripts.
+Grok is an optional independent breaker/reviewer, not a second writer. It is used when model diversity is likely to improve confidence, not as a mandatory duplicate review.
 
-Show the report with:
+The recommended bounded review shape remains:
+
+```text
+grok --no-auto-update -p "<review prompt>" --disallowed-tools Edit --no-subagents --no-memory --disable-web-search --max-turns 6
+```
+
+## Workflow modes
+
+### quick
+
+Small, mechanically clear local change.
+
+```text
+Writer -> relevant checks -> optional reviewer -> stop
+```
+
+Normally at most 2 model/agent calls; hard cap 3 including one repair rerun.
+
+### standard
+
+Normal feature, bug fix, or refactor.
+
+```text
+optional Architect -> Writer -> Reviewer -> optional targeted Security/Grok
+```
+
+Target budget: <=4 model/agent calls. Architect, security review, and Grok are conditional rather than ritual stages.
+
+### deep
+
+Architecture, migration, synchronization, concurrency, public contracts, security, or data-integrity risk.
+
+```text
+Architect -> Writer -> Reviewer -> targeted Security/Grok -> supervisor verdict
+```
+
+Target budget: <=6 model/agent calls. The supervisor makes the final decision from the code, diff, tests, and unresolved findings. There is no automatic final-judge call.
+
+## Agent Teams and worktrees
+
+Agentennetzwerk does not recreate Claude Code's native Agent Teams or worktree isolation.
+
+The normal workflow intentionally stays single-writer. If a user explicitly wants truly independent parallel implementation, Claude Code's native isolation/worktree capabilities are preferred over adding a custom Python/Node controller to this plugin.
+
+## Optional dependencies and fallbacks
+
+```text
+Codex available  -> preferred single writer
+Codex missing    -> claude-builder writer
+
+Grok available   -> optional independent model review
+Grok missing     -> continue with Claude review
+
+Git available    -> diff/status/branch evidence
+Git missing      -> file-based work without Git-dependent readiness claims
+```
+
+Dependency probes are soft and non-destructive. The plugin never installs or authenticates external tools automatically.
+
+## Context and compaction
+
+`/agentennetzwerk:autocompact 60` remains an optional proactive setup command. It is not a requirement for Agentennetzwerk to run and coding tasks do not spend model calls configuring it.
+
+Claude and Grok expose percentage-based compaction controls. Codex exposes an absolute token threshold, so the plugin only reports an exact percentage when an explicit context window makes that calculation verifiable. It never guesses a Codex context-window size from a model name.
+
+Check local state with:
+
+```text
+/agentennetzwerk:doctor
+```
+
+## Factual telemetry
+
+Show locally recorded run telemetry with:
 
 ```text
 /agentennetzwerk:savings
 ```
 
-It reports actual Claude supervisor/subagent token usage, observed Codex/Grok call counts, and unused configured call-budget slots.
+Agentennetzwerk reads recorded Claude Code usage fields from main-session and plugin-subagent JSONL transcripts. v0.8 supports telemetry startup for both direct `/agentennetzwerk:start` expansion and model-invoked `Skill` use.
 
-The plugin deliberately does not calculate fake savings from skipped calls. Without a controlled measured A/B baseline, it reports:
+The report can show:
+
+- measured Claude supervisor tokens
+- measured Claude plugin-subagent tokens
+- observed Codex/Grok invocation counts
+- unused configured call-budget slots
+
+It deliberately does **not** convert skipped calls into imaginary saved tokens. Without a controlled measured baseline:
 
 ```text
 Verified tokens saved: not computable yet
 ```
 
-Telemetry is stored in Claude Code's persistent plugin-data directory, not in project repositories.
+External Codex/Grok token totals are not silently mixed into Claude totals unless directly measured.
+
+## Update policy: check automatically, install manually
+
+Agentennetzwerk checks its GitHub version at most once per 24 hours on Claude Code startup/resume. A network failure does not block startup and no update is installed automatically.
+
+When a newer version is found:
+
+```text
+Agentennetzwerk update available: 0.8.0 -> 0.9.0.
+Run /agentennetzwerk:update to install it manually.
+```
+
+Only this explicit command performs the update:
+
+```text
+/agentennetzwerk:update
+```
+
+Then reload when prompted:
+
+```text
+/reload-plugins
+```
 
 ## Commands
 
@@ -205,20 +212,31 @@ Telemetry is stored in Claude Code's persistent plugin-data directory, not in pr
 /agentennetzwerk:update
 ```
 
-## Core rules
+## Repository structure
 
-- one writer at a time
-- reviewers do not edit code
-- an implementer does not approve its own work
-- no automatic commits, pushes, merges, releases, or destructive resets
-- unrelated local changes are preserved
-- external coding CLIs are never installed or authenticated automatically
-- plugin updates are detected automatically but installed only after `/agentennetzwerk:update`
-- critical security/data-integrity decisions are escalated to the user
-- code and real checks matter more than model agreement
-- only the minimum useful context is passed between agents
-- auto-compaction is never disabled by the workflow
-- Codex context-window sizes are never guessed
+```text
+agentennetzwerk/
+├── .claude-plugin/marketplace.json
+├── .github/workflows/validate-plugin.yml
+├── plugins/agentennetzwerk/
+│   ├── .claude-plugin/plugin.json
+│   ├── hooks/hooks.json
+│   ├── scripts/
+│   ├── skills/
+│   │   ├── start/SKILL.md
+│   │   ├── doctor/SKILL.md
+│   │   ├── autocompact/SKILL.md
+│   │   ├── savings/SKILL.md
+│   │   └── update/SKILL.md
+│   └── agents/
+│       ├── claude-builder.md
+│       ├── architect.md
+│       ├── reviewer.md
+│       └── security-reviewer.md
+├── CHANGELOG.md
+├── LICENSE
+└── README.md
+```
 
 ## Development
 
@@ -230,44 +248,7 @@ claude plugin validate ./plugins/agentennetzwerk
 claude --plugin-dir ./plugins/agentennetzwerk
 ```
 
-GitHub Actions validates the marketplace, plugin manifest, hook JSON, Bash scripts, and factual token parser on pushes and pull requests.
-
-## Repository structure
-
-```text
-agentennetzwerk/
-├── .claude-plugin/marketplace.json
-├── .github/workflows/validate-plugin.yml
-├── plugins/agentennetzwerk/
-│   ├── .claude-plugin/plugin.json
-│   ├── hooks/hooks.json
-│   ├── scripts/
-│   │   ├── check-dependencies.sh
-│   │   ├── check-update.sh
-│   │   ├── manual-update.sh
-│   │   ├── token-usage.sh
-│   │   ├── telemetry-start.sh
-│   │   ├── telemetry-subagent.sh
-│   │   ├── telemetry-stop.sh
-│   │   └── savings-report.sh
-│   ├── skills/
-│   │   ├── start/SKILL.md
-│   │   ├── doctor/SKILL.md
-│   │   ├── autocompact/SKILL.md
-│   │   ├── savings/SKILL.md
-│   │   └── update/SKILL.md
-│   └── agents/
-│       ├── claude-builder.md
-│       ├── repo-explorer.md
-│       ├── architect.md
-│       ├── qa-reviewer.md
-│       ├── regression-hunter.md
-│       ├── security-reviewer.md
-│       └── final-judge.md
-├── CHANGELOG.md
-├── LICENSE
-└── README.md
-```
+GitHub Actions validates both a pinned Claude Code baseline and the current `latest` release, along with JSON, shell scripts, agent references, prompt-invocation configuration, and the factual token parser.
 
 ## License
 
