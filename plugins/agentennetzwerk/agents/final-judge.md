@@ -2,8 +2,6 @@
 name: final-judge
 description: Entscheidet bei riskanten oder strittigen Läufen knapp über Merge-Bereitschaft.
 tools: Read, Grep, Glob, Bash
-model: sonnet
-effort: low
 maxTurns: 6
 disallowedTools: Write, Edit
 ---
