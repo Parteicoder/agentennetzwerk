@@ -70,11 +70,59 @@ jobs:
           test ! -e plugins/agentennetzwerk/agents/qa-reviewer.md
           test ! -e plugins/agentennetzwerk/agents/regression-hunter.md
           test ! -e plugins/agentennetzwerk/agents/final-judge.md
+          test -f plugins/agentennetzwerk/skills/eval/SKILL.md
           ! grep -q '^disable-model-invocation:[[:space:]]*true' plugins/agentennetzwerk/skills/start/SKILL.md
+          grep -q '^disable-model-invocation:[[:space:]]*true' plugins/agentennetzwerk/skills/eval/SKILL.md
           ! grep -R -E 'agentennetzwerk:(repo-explorer|qa-reviewer|regression-hunter|final-judge)' plugins/agentennetzwerk
           grep -q 'agentennetzwerk:reviewer' plugins/agentennetzwerk/skills/start/SKILL.md
           grep -q '"PreToolUse"' plugins/agentennetzwerk/hooks/hooks.json
           grep -q '"matcher": "^Skill$"' plugins/agentennetzwerk/hooks/hooks.json
+          ! grep -A12 '"PreToolUse"' plugins/agentennetzwerk/hooks/hooks.json | grep -q 'check-dependencies.sh'
+
+      - name: Test Skill telemetry scoping
+        run: |
+          export CLAUDE_PLUGIN_ROOT="$PWD/plugins/agentennetzwerk"
+          export CLAUDE_PLUGIN_DATA="/tmp/agentennetzwerk-scope-test"
+          rm -rf "$CLAUDE_PLUGIN_DATA"
+
+          printf '%s\n' '{"session_id":"foreign","transcript_path":"/tmp/none","cwd":"/tmp","hook_event_name":"PreToolUse","tool_name":"Skill","tool_input":{"skill_name":"other-plugin:build"}}' \
+            | bash plugins/agentennetzwerk/scripts/telemetry-start.sh pretool
+          test ! -e "$CLAUDE_PLUGIN_DATA/telemetry/active/foreign.state"
+
+          printf '%s\n' '{"session_id":"ours","transcript_path":"/tmp/none","cwd":"/tmp","hook_event_name":"PreToolUse","tool_name":"Skill","tool_input":{"skill_name":"agentennetzwerk:start"}}' \
+            | bash plugins/agentennetzwerk/scripts/telemetry-start.sh pretool
+          test -f "$CLAUDE_PLUGIN_DATA/telemetry/active/ours.state"
+
+      - name: Validate controlled eval fixtures
+        run: |
+          export CLAUDE_PLUGIN_ROOT="$PWD/plugins/agentennetzwerk"
+          for scenario in quick standard deep; do
+            output="$(bash plugins/agentennetzwerk/scripts/eval-fixture.sh "$scenario")"
+            workspace="$(printf '%s\n' "$output" | sed -n 's/^WORKSPACE=//p')"
+            test -n "$workspace"
+            test -f "$workspace/TASK.md"
+            test -d "$workspace/.git"
+            if (cd "$workspace" && npm test >/dev/null 2>&1); then
+              echo "Fresh $scenario fixture unexpectedly passes" >&2
+              exit 1
+            fi
+            rm -rf "$workspace"
+          done
+
+      - name: Test eval tamper detection
+        run: |
+          export CLAUDE_PLUGIN_ROOT="$PWD/plugins/agentennetzwerk"
+          export CLAUDE_PLUGIN_DATA="/tmp/agentennetzwerk-eval-test-data"
+          rm -rf "$CLAUDE_PLUGIN_DATA"
+          output="$(bash plugins/agentennetzwerk/scripts/eval-fixture.sh quick)"
+          workspace="$(printf '%s\n' "$output" | sed -n 's/^WORKSPACE=//p')"
+          printf '\n// tamper\n' >> "$workspace/test/normalize.test.js"
+          if bash plugins/agentennetzwerk/scripts/eval-grade.sh "$workspace" quick baseline >/tmp/eval-grade.out 2>&1; then
+            echo "Tampered fixture unexpectedly passed grading" >&2
+            exit 1
+          fi
+          grep -q 'REASON=protected_files_changed:' /tmp/eval-grade.out
+          rm -rf "$workspace"
 
       - name: Test factual token parser
         run: |
