@@ -2,8 +2,6 @@
 name: regression-hunter
 description: Prüft gezielt, welches bestehende Verhalten durch einen Patch beschädigt werden könnte.
 tools: Read, Grep, Glob, Bash
-model: sonnet
-effort: low
 maxTurns: 8
 disallowedTools: Write, Edit
 ---
