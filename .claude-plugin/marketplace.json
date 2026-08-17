@@ -5,13 +5,13 @@
     "url": "https://github.com/Parteicoder"
   },
   "description": "Claude Code plugins by Parteicoder for multi-agent development.",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "plugins": [
     {
       "name": "agentennetzwerk",
       "displayName": "Agentennetzwerk",
       "source": "./plugins/agentennetzwerk",
-      "description": "Lean coding network with natural prompt invocation, inherited Claude model choice, Codex single-writer preference, targeted Claude/Grok review, factual telemetry, and manual-approved updates.",
+      "description": "Lean coding network with natural prompt invocation, Codex single-writer preference, targeted Claude/Grok review, factual telemetry, controlled evals, and manual-approved updates.",
       "author": {
         "name": "Parteicoder",
         "url": "https://github.com/Parteicoder"
@@ -20,7 +20,7 @@
       "repository": "https://github.com/Parteicoder/agentennetzwerk",
       "license": "AGPL-3.0",
       "category": "development",
-      "tags": ["multi-agent", "coding", "claude-code", "codex", "grok", "coding-agents", "token-efficient", "token-telemetry", "manual-update"]
+      "tags": ["multi-agent", "coding", "claude-code", "codex", "grok", "coding-agents", "token-efficient", "token-telemetry", "benchmark", "manual-update"]
     }
   ]
 }
