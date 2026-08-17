@@ -2,8 +2,6 @@
 name: repo-explorer
 description: Findet für eine konkrete Aufgabe nur die relevanten Repository-Bereiche und Checks.
 tools: Read, Grep, Glob, Bash
-model: haiku
-effort: low
 maxTurns: 8
 disallowedTools: Write, Edit
 ---
