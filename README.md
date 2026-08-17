@@ -32,15 +32,13 @@ Optional modes:
 
 ## Choose your Claude model first
 
-Agentennetzwerk does not force a Claude model.
-
-Use Claude Code's normal model selector before starting the workflow:
+Agentennetzwerk does not force a Claude model. Use Claude Code's normal model selector before starting:
 
 ```text
 /model
 ```
 
-Choose Sonnet or Opus. Plugin subagents explicitly use `model: inherit`, so they follow the main Claude Code session model. The plugin saves tokens by controlling context and agent count, not by silently downgrading the model.
+Choose Sonnet or Opus. Plugin subagents use `model: inherit`, so they follow the main Claude Code session model. Token savings come from smaller context, fewer calls, bounded turns, and early exits, not from silently downgrading the model.
 
 ## Optional dependencies
 
@@ -53,7 +51,7 @@ For the full network:
 
 Codex and Grok must be installed and authenticated separately. Agentennetzwerk never installs, updates, or logs into external CLIs automatically.
 
-Missing tools do not block the plugin. The first `/agentennetzwerk:start` call in a session displays a soft warning and selects a fallback:
+Missing tools do not block the plugin. A soft dependency check reports limitations and selects a fallback:
 
 ```text
 Codex available  -> Codex is the preferred single writer
@@ -66,20 +64,58 @@ Git available    -> diff/status/branch verification available
 Git missing      -> file-based workflow without Git guarantees
 ```
 
-Run a manual local check at any time:
+Check the local setup at any time:
 
 ```text
 /agentennetzwerk:doctor
 ```
 
-The doctor command checks local tool availability and reports the active fallback path. It does not install, update, or authenticate anything.
+## Factual token telemetry
+
+Starting with **0.5.0**, Agentennetzwerk records local token telemetry for its Claude runs. The telemetry reads the real usage fields written by Claude Code to the main-session and subagent JSONL transcripts. It does not estimate tokens from character counts.
+
+Show the report with:
+
+```text
+/agentennetzwerk:savings
+```
+
+The report includes:
+
+- completed Agentennetzwerk runs tracked since 0.5.0
+- actual Claude tokens consumed by the supervisor
+- actual Claude tokens consumed by Agentennetzwerk subagents
+- observed Codex and Grok call counts
+- unused configured call-budget slots for explicitly selected modes
+
+The telemetry is stored in Claude Code's persistent plugin-data directory, not in the project repository.
+
+### Why the command does not invent a savings number
+
+Actual consumed tokens are measurable. The exact number of tokens an agent **would have consumed if it had been called** is not measurable because that model call never happened.
+
+Therefore Agentennetzwerk deliberately does **not** calculate:
+
+```text
+skipped calls × guessed average tokens = "tokens saved"
+```
+
+That would be an estimate disguised as a fact.
+
+Without a controlled measured A/B baseline, the command reports:
+
+```text
+Verified tokens saved: not computable yet
+```
+
+Unused call slots are shown as a call count, never converted into fake token savings. External Codex/Grok token totals are also kept separate unless they are directly measured; they are not silently mixed into Claude token totals.
 
 ## Token-efficient design
 
 The plugin keeps Sonnet or Opus fully available while reducing unnecessary work:
 
 - only task-relevant agents are started
-- the full skill is manual-only and loads only when invoked
+- the orchestration skill is manual-only and loads only when invoked
 - subagents keep exploration and logs outside the main context
 - compact handoffs are reused instead of repeatedly summarized
 - reviewers receive relevant diffs/files, not full chat transcripts
@@ -111,8 +147,6 @@ For small local changes:
 Writer -> QA -> relevant checks -> stop
 ```
 
-Repository exploration is used only when the target is unclear.
-
 ### standard
 
 For normal features, bug fixes, and refactoring:
@@ -120,8 +154,6 @@ For normal features, bug fixes, and refactoring:
 ```text
 optional Explorer/Architect -> Writer -> QA -> risk-specific review -> checks
 ```
-
-Regression, security, Grok, and Final Judge stages are added only when they provide real value.
 
 ### deep
 
@@ -153,13 +185,11 @@ When available, Codex is the preferred writer. Agentennetzwerk prefers an epheme
 codex exec --ephemeral --sandbox workspace-write -
 ```
 
-Passing the task via stdin is preferred when practical. The workflow does not use `danger-full-access`, and Codex is instructed not to commit, push, merge, or reset unrelated work.
+The workflow does not use `danger-full-access`, and Codex is instructed not to commit, push, merge, or reset unrelated work.
 
 ### Grok Build
 
-Grok is used as a breaker/reviewer rather than a second writer. The workflow keeps these review runs bounded and avoids unnecessary memory, web search, and subagents when supported.
-
-Agentennetzwerk does not use `--always-approve` for Grok reviews.
+Grok is used as a breaker/reviewer rather than a second writer. Review runs are bounded and remove edit capability when supported. Agentennetzwerk does not use `--always-approve` for Grok reviews.
 
 ## Core rules
 
@@ -172,6 +202,7 @@ Agentennetzwerk does not use `--always-approve` for Grok reviews.
 - critical security/data-integrity decisions are escalated to the user
 - code and real checks matter more than model agreement
 - only the minimum useful context is passed between agents
+- token reporting distinguishes measured facts from counterfactual estimates
 
 ## Development
 
@@ -188,6 +219,7 @@ Then inside Claude Code:
 ```text
 /agentennetzwerk:doctor
 /agentennetzwerk:start standard Implement a small test change
+/agentennetzwerk:savings
 ```
 
 ## Repository structure
@@ -195,15 +227,22 @@ Then inside Claude Code:
 ```text
 agentennetzwerk/
 ├── .claude-plugin/marketplace.json
+├── .github/workflows/validate-plugin.yml
 ├── plugins/agentennetzwerk/
 │   ├── .claude-plugin/plugin.json
 │   ├── hooks/hooks.json
 │   ├── scripts/
 │   │   ├── check-dependencies.sh
-│   │   └── check-dependencies.ps1
+│   │   ├── check-dependencies.ps1
+│   │   ├── token-usage.sh
+│   │   ├── telemetry-start.sh
+│   │   ├── telemetry-subagent.sh
+│   │   ├── telemetry-stop.sh
+│   │   └── savings-report.sh
 │   ├── skills/
 │   │   ├── start/SKILL.md
-│   │   └── doctor/SKILL.md
+│   │   ├── doctor/SKILL.md
+│   │   └── savings/SKILL.md
 │   └── agents/
 │       ├── claude-builder.md
 │       ├── repo-explorer.md
