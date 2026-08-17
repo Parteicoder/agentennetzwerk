@@ -2,6 +2,17 @@
 
 All notable Agentennetzwerk changes are documented here.
 
+## 0.8.1 - 2026-08-17
+
+- Added `/agentennetzwerk:eval [network|baseline] [quick|standard|deep]` for controlled same-task benchmark runs in isolated temporary repositories.
+- Added three dependency-free Node.js benchmark fixtures with intentionally failing tests for quick, standard, and deep workloads.
+- Added an eval grader that rejects test/task/package tampering, records PASS/FAIL, and captures factual patch-size metrics separately from token usage.
+- Extended `/agentennetzwerk:savings` with controlled eval summaries and Claude-only baseline-vs-network token deltas when matching runs exist.
+- Kept the measurement boundary explicit: Codex/Grok token totals are not silently included in Claude-only token comparisons, so the report does not claim total AI-token savings.
+- Fixed model-invoked skill hook scoping: `PreToolUse` now starts telemetry only for the Agentennetzwerk start skill and no longer runs the dependency-context hook for unrelated Skill tool calls.
+- Added dedicated eval telemetry modes (`eval-baseline-*` and `eval-network-*`) so controlled runs can be compared without mixing them with normal quick/standard/deep usage.
+- CI now validates the benchmark harness, confirms every fresh fixture begins with failing tests, verifies the grader detects protected-file tampering, and checks Skill-hook scoping.
+
 ## 0.8.0 - 2026-08-17
 
 - Enabled model invocation for the `start` skill with a deliberately narrow description, so explicit natural-language requests such as "use Agentennetzwerk" can trigger the plugin while ordinary coding requests stay on Claude Code's normal path.
