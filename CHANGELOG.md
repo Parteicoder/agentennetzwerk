@@ -2,6 +2,16 @@
 
 All notable Agentennetzwerk changes are documented here.
 
+## 0.6.0 - 2026-08-17
+
+- Added `/agentennetzwerk:autocompact [percent]`, defaulting to 60%, for proactive native context compaction.
+- Claude Code setup merges `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=60` into the user's Claude settings; the setting applies to the main conversation and Claude subagents after restart.
+- Grok Build setup writes `[session].auto_compact_threshold_percent = 60` while preserving unrelated Grok configuration.
+- Codex is handled factually: because Codex exposes an absolute token threshold rather than a percentage setting, Agentennetzwerk calculates 60% only for scopes with an explicit `model_context_window` and never guesses a window from a model name.
+- Added backup behavior before changing existing Grok or Codex configuration.
+- Extended `/agentennetzwerk:doctor` to verify auto-compaction state and distinguish `EXACT 60%`, restart-required, other/default values, and Codex `NOT PINNED` states.
+- Added the 60% compaction policy to the normal workflow. Coding tasks never disable compaction and do not spend model calls merely to configure it.
+
 ## 0.5.0 - 2026-08-17
 
 - Added `/agentennetzwerk:savings` for fact-only local token reporting.
