@@ -2,6 +2,17 @@
 
 All notable Agentennetzwerk changes are documented here.
 
+## 0.5.0 - 2026-08-17
+
+- Added `/agentennetzwerk:savings` for fact-only local token reporting.
+- Added local telemetry for actual Claude supervisor and Agentennetzwerk subagent token usage from Claude Code JSONL transcript usage fields.
+- Added `UserPromptExpansion`, `SubagentStop`, and parent `Stop` telemetry hooks.
+- Added persistent run history under Claude Code's `${CLAUDE_PLUGIN_DATA}` directory instead of writing telemetry into project repositories.
+- Added factual counts for observed Codex/Grok calls and unused configured call-budget slots.
+- Deliberately refuses to convert skipped calls into fake token savings. A verified saved-token number requires a controlled measured baseline.
+- Added a transcript token parser that includes non-cached input, cache-creation input, cache-read input, and output tokens.
+- Documented telemetry scope: external Codex/Grok token totals are not silently mixed into Claude totals when they are not directly measured.
+
 ## 0.4.0 - 2026-08-17
 
 - Added explicit `model: inherit` to Claude agents so the user's Sonnet/Opus selection is respected.
