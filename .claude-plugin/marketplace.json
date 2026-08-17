@@ -1,0 +1,27 @@
+{
+  "name": "parteicoder-agenten",
+  "owner": {
+    "name": "Parteicoder",
+    "url": "https://github.com/Parteicoder"
+  },
+  "description": "Claude-Code-Plugins von Parteicoder für Multi-Agent-Entwicklung.",
+  "version": "0.1.0",
+  "plugins": [
+    {
+      "name": "agentennetzwerk",
+      "displayName": "Agentennetzwerk",
+      "source": "./plugins/agentennetzwerk",
+      "description": "Promptbasiertes Coding-Council mit Claude-Agenten, Codex CLI und Grok Build.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Parteicoder",
+        "url": "https://github.com/Parteicoder"
+      },
+      "homepage": "https://github.com/Parteicoder/agentennetzwerk",
+      "repository": "https://github.com/Parteicoder/agentennetzwerk",
+      "license": "AGPL-3.0",
+      "category": "development",
+      "tags": ["multi-agent", "coding", "claude-code", "codex", "grok"]
+    }
+  ]
+}
