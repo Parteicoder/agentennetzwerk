@@ -1,5 +1,5 @@
 {
-  "description": "Block Agentennetzwerk when required coding CLIs are missing.",
+  "description": "Warn once per Claude Code session when optional coding CLIs are missing, without blocking Agentennetzwerk.",
   "hooks": {
     "UserPromptExpansion": [
       {
@@ -8,7 +8,7 @@
           {
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/check-dependencies.sh\"",
-            "timeout": 15
+            "timeout": 5
           }
         ]
       }
