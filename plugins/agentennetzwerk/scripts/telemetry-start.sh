@@ -1,14 +1,20 @@
 #!/usr/bin/env bash
 
-# Start factual Agentennetzwerk telemetry for direct or model-invoked start.
-# Stores only local metadata and transcript token snapshots in CLAUDE_PLUGIN_DATA.
+# Start factual Agentennetzwerk telemetry for direct start, model-invoked start,
+# or controlled benchmark runs. Stores only local metadata and transcript token snapshots.
 
 set -u
+KIND="${1:-start}"
 INPUT="$(cat 2>/dev/null)"
 
-# PreToolUse is attached to the Skill tool generally. Ignore unrelated skills.
-if ! printf '%s' "$INPUT" | grep -Fq 'agentennetzwerk:start'; then
-  exit 0
+# PreToolUse is attached to the Skill tool generally. Matchers cannot filter the
+# Skill arguments, so ignore unrelated skills here. Official Claude Code hook
+# semantics expose tool_input to command hooks.
+if [ "$KIND" = "pretool" ]; then
+  if ! printf '%s' "$INPUT" | grep -Fq 'agentennetzwerk:start'; then
+    exit 0
+  fi
+  KIND="start"
 fi
 
 extract_json_string() {
@@ -27,13 +33,22 @@ ACTIVE="$DATA/telemetry/active"
 mkdir -p "$ACTIVE" "$DATA/telemetry"
 STATE="$ACTIVE/$SESSION_ID.state"
 
-# Do not reset an active run if the hook is retried.
+# Do not reset an active run if a hook is retried.
 [ ! -f "$STATE" ] || exit 0
 
 MODE="auto"
-case "${COMMAND_ARGS%% *}" in
-  quick|standard|deep) MODE="${COMMAND_ARGS%% *}" ;;
-esac
+if [ "$KIND" = "eval" ]; then
+  VARIANT="${COMMAND_ARGS%% *}"
+  REST="${COMMAND_ARGS#* }"
+  SCENARIO="${REST%% *}"
+  case "$VARIANT" in network|baseline) ;; *) VARIANT="unknown" ;; esac
+  case "$SCENARIO" in quick|standard|deep) ;; *) SCENARIO="unknown" ;; esac
+  MODE="eval-${VARIANT}-${SCENARIO}"
+else
+  case "${COMMAND_ARGS%% *}" in
+    quick|standard|deep) MODE="${COMMAND_ARGS%% *}" ;;
+  esac
+fi
 
 START_TOKENS=0
 START_LINES=0
