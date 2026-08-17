@@ -2,8 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "agentennetzwerk",
   "displayName": "Agentennetzwerk",
-  "description": "Lean multi-agent coding workflow for Claude Code with natural prompt invocation, inherited model choice, Codex single-writer preference, targeted Claude/Grok review, factual telemetry, optional compaction setup, and manual-approved updates.",
-  "version": "0.8.0",
+  "description": "Lean multi-agent coding workflow for Claude Code with natural prompt invocation, Codex single-writer preference, targeted reviews, factual telemetry, controlled quality/token evals, optional compaction setup, and manual-approved updates.",
+  "version": "0.8.1",
   "author": {
     "name": "Parteicoder",
     "url": "https://github.com/Parteicoder"
@@ -11,5 +11,5 @@
   "homepage": "https://github.com/Parteicoder/agentennetzwerk",
   "repository": "https://github.com/Parteicoder/agentennetzwerk",
   "license": "AGPL-3.0",
-  "keywords": ["multi-agent", "coding", "claude-code", "codex", "grok", "coding-agents", "token-efficient", "token-telemetry", "manual-update"]
+  "keywords": ["multi-agent", "coding", "claude-code", "codex", "grok", "coding-agents", "token-efficient", "token-telemetry", "benchmark", "manual-update"]
 }
