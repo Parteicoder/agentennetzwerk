@@ -2,8 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "agentennetzwerk",
   "displayName": "Agentennetzwerk",
-  "description": "Token-efficient multi-agent coding network for Claude Code with inherited Sonnet/Opus selection, bounded agent budgets, optional Codex and Grok, and Claude fallbacks.",
-  "version": "0.4.0",
+  "description": "Token-efficient multi-agent coding network for Claude Code with inherited Sonnet/Opus selection, factual local token telemetry, optional Codex and Grok, and Claude fallbacks.",
+  "version": "0.5.0",
   "author": {
     "name": "Parteicoder",
     "url": "https://github.com/Parteicoder"
@@ -11,5 +11,5 @@
   "homepage": "https://github.com/Parteicoder/agentennetzwerk",
   "repository": "https://github.com/Parteicoder/agentennetzwerk",
   "license": "AGPL-3.0",
-  "keywords": ["multi-agent", "coding", "claude-code", "codex", "grok", "coding-agents", "token-efficient"]
+  "keywords": ["multi-agent", "coding", "claude-code", "codex", "grok", "coding-agents", "token-efficient", "token-telemetry"]
 }
