@@ -3,7 +3,7 @@
   "hooks": {
     "UserPromptExpansion": [
       {
-        "matcher": "agentennetzwerk:start",
+        "matcher": "^agentennetzwerk:start$",
         "hooks": [
           {
             "type": "command",
@@ -20,7 +20,7 @@
     ],
     "SubagentStop": [
       {
-        "matcher": "claude-builder|repo-explorer|architect|qa-reviewer|regression-hunter|security-reviewer|final-judge",
+        "matcher": "^agentennetzwerk:(claude-builder|repo-explorer|architect|qa-reviewer|regression-hunter|security-reviewer|final-judge)$",
         "hooks": [
           {
             "type": "command",
