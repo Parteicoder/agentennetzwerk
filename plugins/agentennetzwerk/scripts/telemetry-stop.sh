@@ -12,6 +12,10 @@ extract_json_string() {
 }
 
 SESSION_ID="$(extract_json_string session_id)"
+AGENT_ID="$(extract_json_string agent_id)"
+
+# Stop hooks can also exist in subagent contexts. Only the parent turn may close a network run.
+[ -z "$AGENT_ID" ] || exit 0
 [ -n "$SESSION_ID" ] || exit 0
 
 DATA="${CLAUDE_PLUGIN_DATA:-${HOME:-.}/.claude/agentennetzwerk}"
