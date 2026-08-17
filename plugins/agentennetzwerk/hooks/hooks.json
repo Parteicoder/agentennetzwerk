@@ -1,5 +1,5 @@
 {
-  "description": "Warn once per Claude Code session when optional coding CLIs are missing, without blocking Agentennetzwerk.",
+  "description": "Soft dependency reporting plus local factual token telemetry for Agentennetzwerk runs.",
   "hooks": {
     "UserPromptExpansion": [
       {
@@ -8,6 +8,34 @@
           {
             "type": "command",
             "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/check-dependencies.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/telemetry-start.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "claude-builder|repo-explorer|architect|qa-reviewer|regression-hunter|security-reviewer|final-judge",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/telemetry-subagent.sh\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/telemetry-stop.sh\"",
             "timeout": 5
           }
         ]
