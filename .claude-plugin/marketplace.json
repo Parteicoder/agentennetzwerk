@@ -12,7 +12,6 @@
       "displayName": "Agentennetzwerk",
       "source": "./plugins/agentennetzwerk",
       "description": "Token-efficient coding council with inherited Sonnet/Opus selection, bounded agent budgets, optional Codex and Grok, and Claude fallbacks.",
-      "version": "0.4.0",
       "author": {
         "name": "Parteicoder",
         "url": "https://github.com/Parteicoder"
