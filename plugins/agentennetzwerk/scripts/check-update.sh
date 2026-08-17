@@ -14,15 +14,11 @@ NOW="$(date +%s 2>/dev/null || echo 0)"
 
 mkdir -p "$STATE_DIR" >/dev/null 2>&1 || exit 0
 
-# Reuse the last result until the 24h interval expires.
+# If the last real check was less than 24h ago, stay silent.
 if [ -f "$STAMP" ]; then
   LAST="$(cat "$STAMP" 2>/dev/null || echo 0)"
   case "$LAST" in ''|*[!0-9]*) LAST=0 ;; esac
   if [ "$NOW" -gt 0 ] && [ $((NOW - LAST)) -lt "$INTERVAL" ]; then
-    if [ -f "$CACHE" ] && grep -q '^UPDATE_AVAILABLE|' "$CACHE" 2>/dev/null; then
-      IFS='|' read -r _ CURRENT LATEST < "$CACHE"
-      printf '{"systemMessage":"Agentennetzwerk update available: %s -> %s. Run /agentennetzwerk:update to install it manually.","hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"Agentennetzwerk update %s -> %s is available. Do not install automatically. Only update when the user explicitly runs /agentennetzwerk:update."}}\n' "$CURRENT" "$LATEST" "$CURRENT" "$LATEST"
-    fi
     exit 0
   fi
 fi
