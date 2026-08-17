@@ -1,15 +1,12 @@
-# Soft dependency check for native Windows / PowerShell.
-# This helper never blocks Agentennetzwerk. The active plugin hook uses the Bash variant.
-
+# Optional local dependency probe for Windows. Never blocks Agentennetzwerk.
 $missing = @()
-foreach ($command in @('git', 'codex', 'grok')) {
-    if (-not (Get-Command $command -ErrorAction SilentlyContinue)) {
-        $missing += $command
-    }
-}
+
+try { & git --version *> $null; if ($LASTEXITCODE -ne 0) { throw } } catch { $missing += 'git' }
+try { & codex --version *> $null; if ($LASTEXITCODE -ne 0) { throw } } catch { $missing += 'codex' }
+try { & grok version *> $null; if ($LASTEXITCODE -ne 0) { throw } } catch { $missing += 'grok' }
 
 if ($missing.Count -gt 0) {
-    Write-Warning "Agentennetzwerk: optionale Abhaengigkeit(en) fehlen: $($missing -join ', '). Das Plugin funktioniert weiter mit Einschraenkungen und Claude-Agenten als Fallback."
+    Write-Warning "Agentennetzwerk: optional tool(s) unavailable: $($missing -join ', '). The plugin still works with reduced capabilities."
 }
 
 exit 0
