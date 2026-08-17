@@ -4,9 +4,27 @@ Ein promptbasiertes Multi-Agent-Coding-Netzwerk für Claude Code.
 
 Claude Code übernimmt die Koordination, spezialisierte Claude-Subagents analysieren und reviewen, Codex CLI ist standardmäßig der einzige Code-Writer und Grok Build arbeitet als unabhängiger Gegenprüfer/Breaker.
 
-Es gibt keinen eigenen Python-, Node- oder Server-Orchestrator. Das Netzwerk besteht aus Claude-Code-Plugin-Metadaten, Skills und Agent-Prompts und nutzt bereits installierte Coding-CLIs.
+Es gibt keinen eigenen Python-, Node- oder Server-Orchestrator. Das Netzwerk besteht aus Claude-Code-Plugin-Metadaten, Skills, Agent-Prompts und Hook-Skripten.
 
-> **Wichtig:** Für den vollständigen Agentennetzwerk-Workflow benötigt Claude Code alle vorgesehenen Coding-KIs auf dem Rechner. Claude Code ist der Koordinator des Netzwerks, ersetzt Codex und Grok aber nicht. Codex CLI und Grok Build CLI müssen deshalb zusätzlich installiert, ausführbar und beim jeweiligen Anbieter authentifiziert sein. Fehlt eine dieser Coding-KIs, kann der vollständige Council-Workflow mit unabhängiger Implementierung und Gegenprüfung nicht wie vorgesehen ausgeführt werden.
+## Harte Abhängigkeiten
+
+Für den vollständigen Betrieb sind diese Komponenten zwingend erforderlich:
+
+- Claude Code
+- Git
+- Codex CLI, installiert, im `PATH` verfügbar und authentifiziert
+- Grok Build CLI, installiert, im `PATH` verfügbar und authentifiziert
+
+Das Plugin behandelt Codex und Grok nicht nur als optionale Empfehlung. Beim Start des Agentennetzwerks werden beide CLIs geprüft. Fehlt eine der Abhängigkeiten, wird der Council-Workflow nicht ausgeführt.
+
+```text
+Claude Code  = Supervisor + Claude-Agenten
+Codex        = Single Writer / Implementierung
+Grok         = unabhängiger Breaker / Gegenprüfung
+Git          = gemeinsame Wahrheit
+```
+
+Das Plugin installiert oder authentifiziert Codex und Grok absichtlich nicht automatisch. Die Abhängigkeiten müssen auf dem System bereits funktionsfähig sein.
 
 ## Prinzip
 
@@ -15,6 +33,12 @@ Benutzer
    |
    v
 /agentennetzwerk:start
+   |
+   v
+Dependency Check
+   |
+   +--> codex vorhanden + erreichbar?
+   +--> grok vorhanden + erreichbar?
    |
    v
 Claude Supervisor
@@ -36,30 +60,6 @@ Final Judge
    +--> NOT READY
    +--> HUMAN DECISION REQUIRED
 ```
-
-## Voraussetzungen
-
-Für den **vollständigen Betrieb** des Agentennetzwerks werden alle folgenden Komponenten benötigt:
-
-- **Claude Code**: Supervisor, Orchestrator und Host für Skill und Claude-Subagents
-- **Git**: gemeinsame Arbeitsgrundlage und Diff-Quelle
-- **Codex CLI**: primärer Coding- und Implementierungsagent; muss installiert und authentifiziert sein
-- **Grok Build CLI**: unabhängiger Coding-KI-Gegenprüfer/Breaker; muss installiert und authentifiziert sein
-
-Claude Code muss die externen Coding-KIs über die Kommandozeile aufrufen können. Die Befehle `codex` und `grok` müssen deshalb im Terminal bzw. im `PATH` verfügbar sein.
-
-Das Plugin installiert oder authentifiziert Codex und Grok absichtlich nicht selbst. Vor der Nutzung des vollständigen Workflows muss der Benutzer die Coding-KIs separat installieren und bei den jeweiligen Diensten anmelden.
-
-Kurz gesagt:
-
-```text
-Claude Code  = Koordination + Claude-Agenten
-Codex        = Implementierung
-Grok         = unabhängige Gegenprüfung
-Git          = gemeinsame Wahrheit
-```
-
-Ohne Codex oder Grok ist Claude Code weiterhin lauffähig, aber das Agentennetzwerk ist dann **nicht vollständig** und kann die vorgesehene Trennung zwischen Supervisor, Writer und unabhängigem Breaker nicht vollständig gewährleisten.
 
 ## Installation direkt aus GitHub
 
@@ -130,7 +130,7 @@ Grok wird headless über `grok -p` aufgerufen. Seine Hauptrolle ist nicht das Sc
 - maximal zwei Reparaturzyklen
 - Stop bei kritischen Security-Befunden oder möglichem Datenverlust
 - keine Mehrheitsabstimmung zwischen Modellen; Evidenz entscheidet
-- externe CLIs werden nicht automatisch installiert oder eingeloggt
+- Codex und Grok müssen vor dem Workflow erfolgreich geprüft werden
 
 ## Entwicklung und Test
 
@@ -175,6 +175,10 @@ agentennetzwerk/
 │   └── agentennetzwerk/
 │       ├── .claude-plugin/
 │       │   └── plugin.json
+│       ├── hooks/
+│       │   └── hooks.json
+│       ├── scripts/
+│       │   └── check-dependencies.ps1
 │       ├── skills/
 │       │   └── start/
 │       │       └── SKILL.md
