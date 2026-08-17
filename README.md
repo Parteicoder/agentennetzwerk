@@ -102,6 +102,8 @@ git --version
 
 Fehlt eine Abhängigkeit, wird `/agentennetzwerk:start` blockiert und nennt die fehlende CLI.
 
+Unter Windows liegt zusätzlich `scripts/check-dependencies.ps1` bei. Das eigentliche Plugin-Gate verwendet die Bash-Variante, weil Git for Windows eine Bash-Umgebung mitbringt und Claude Code diese auf Windows bevorzugt, wenn sie verfügbar ist.
+
 ## Modi
 
 ### quick
@@ -193,7 +195,8 @@ agentennetzwerk/
 │       ├── hooks/
 │       │   └── hooks.json
 │       ├── scripts/
-│       │   └── check-dependencies.sh
+│       │   ├── check-dependencies.sh
+│       │   └── check-dependencies.ps1
 │       ├── skills/
 │       │   └── start/
 │       │       └── SKILL.md
