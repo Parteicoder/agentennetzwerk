@@ -1,130 +1,130 @@
 ---
 name: start
-description: Startet ein tokensparendes Multi-Agent-Coding-Netzwerk mit Claude-Agenten sowie optional Codex CLI und Grok Build.
+description: Start a token-efficient multi-agent coding workflow using Claude agents plus optional Codex CLI and Grok Build.
 disable-model-invocation: true
-argument-hint: "[quick|standard|deep] <Aufgabe>"
+argument-hint: "[quick|standard|deep] <task>"
 ---
 
 # Agentennetzwerk
 
-Du bist der Supervisor. Die Aufgabe steht in `$ARGUMENTS`.
+Task: `$ARGUMENTS`
 
-## Ziel
+Use the smallest workflow that can solve the task safely. Claude subagents inherit the model and effort selected in the main Claude Code session. Never override the user's Sonnet/Opus choice.
 
-Löse die Aufgabe mit möglichst wenig Kontext und möglichst wenigen Agenten, ohne wichtige Qualitätsprüfungen auszulassen. Subagents werden gezielt eingesetzt; Agent Teams sind nicht erforderlich.
+## Capabilities
 
-## Claude-Modell
+The soft dependency hook may provide `SOFT_DEPENDENCY_STATUS`.
 
-Das Plugin erzwingt kein Claude-Modell und überschreibt die Modellauswahl des Benutzers nicht. Alle Plugin-Subagents erben standardmäßig das Modell und den Effort der Hauptsitzung. Wählt der Benutzer vor dem Start Sonnet oder Opus, arbeitet das Claude-Agentennetz mit dieser Auswahl weiter.
+- Codex available: preferred single writer.
+- Codex missing: use `claude-builder` as single writer.
+- Grok available: optional independent breaker/reviewer.
+- Grok missing: continue with Claude reviewers and mention reduced model diversity once in the final summary.
+- Git missing: continue file-based, but make no branch, diff, or merge-readiness claims that require Git.
 
-Tokens werden durch kurze Kontexte, begrenzte `maxTurns`, selektive Agenten und knappe Ergebnisse gespart, nicht durch automatisches Herabstufen auf ein kleineres Modell.
+Do not repeatedly probe dependencies. Never install, update, or authenticate external CLIs automatically.
 
-## Optionale externe Abhängigkeiten
+## Non-negotiable rules
 
-Der Plugin-Hook meldet fehlende Programme einmal pro Claude-Code-Sitzung als `SOFT_DEPENDENCY_STATUS`.
+- One writer at a time. Reviewers never edit.
+- No commit, push, merge, release, destructive Git action, or reset of unrelated local changes unless the user explicitly requests it.
+- Do not let an implementer approve its own work.
+- Pass agents only: task, acceptance criteria, relevant files/interfaces, and the relevant diff or excerpts. Never forward the full chat transcript.
+- Keep agent returns compact: normally <=5 bullets, no unchanged code, no repeated task text.
+- Evidence beats model agreement. Use actual code and checks.
+- Stop early when acceptance criteria are met, QA is clean, and relevant checks pass.
 
-- Codex vorhanden: Codex ist bevorzugter Single Writer.
-- Codex fehlt: `claude-builder` ist Single Writer.
-- Grok vorhanden: Grok kann als unabhängiger Breaker eingesetzt werden.
-- Grok fehlt: kein Abbruch; nutze nur bei echtem Bedarf einen passenden Claude-Reviewer und kennzeichne die geringere Modellvielfalt im Abschluss.
-- Git fehlt: kein Abbruch; arbeite dateibasiert, aber behaupte keine Git-Diff-, Branch- oder Merge-Verifikation.
+## Call budget
 
-Prüfe Abhängigkeiten nicht bei jeder Phase erneut. Installiere oder authentifiziere nichts automatisch.
+Treat every Claude subagent run, Codex run, and Grok run as one call.
 
-## Grundregeln
+- `quick`: target <=3 calls, maximum 1 repair rerun.
+- `standard`: target <=5 calls, maximum 1 repair rerun. A second rerun is allowed only for a remaining HIGH/CRITICAL issue.
+- `deep`: target <=8 calls, maximum 2 repair reruns.
 
-1. Nur ein Writer gleichzeitig.
-2. Reviewer verändern keinen Code.
-3. Kein Agent gibt seine eigene Implementierung final frei.
-4. Keine Commits, Pushes, Merges, Releases oder destruktiven Git-Aktionen ohne ausdrücklichen Benutzerauftrag.
-5. Fremde lokale Änderungen niemals zurücksetzen.
-6. Übergib Agenten nur den minimal nötigen Kontext: Ziel, Akzeptanzkriterien, relevante Dateien und aktuellen Diff/Ausschnitt. Keine vollständigen Chatverläufe.
-7. Große Logs, komplette Dateien und lange Tool-Ausgaben nicht in den Hauptkontext kopieren. Subagents sollen sie lokal prüfen und nur Ergebnisse zurückgeben.
-8. Ergebnisse knapp halten: normalerweise höchstens 6 Stichpunkte oder ca. 150 Wörter pro Agent.
-9. Keine Mehrheitsabstimmung. Code, Tests und konkrete Evidenz entscheiden.
+Do not spend the budget merely because it exists.
 
-## Modus
+## Routing
 
-Wenn angegeben, nutze `quick`, `standard` oder `deep`. Sonst wähle den kleinsten ausreichenden Modus.
+If no mode is supplied, choose the smallest sufficient mode.
 
 ### quick
-Für kleine, lokal begrenzte Änderungen.
+Small, local change.
 
-- Kein Architect, außer die Aufgabe ist überraschend mehrdeutig.
-- `repo-explorer` nur wenn relevante Dateien nicht sofort erkennbar sind.
-- Ein Writer: Codex, sonst `claude-builder`.
-- Danach genau ein `qa-reviewer`.
-- Höchstens eine Reparaturrunde.
-- Kein Final Judge, solange QA und Checks sauber sind.
+1. Find the target directly; use `repo-explorer` only if necessary.
+2. Writer: Codex, otherwise `claude-builder`.
+3. Run `qa-reviewer` on the changed code.
+4. Run only the relevant checks. If clean, stop.
 
 ### standard
-Für normale Features, Bugfixes und Refactorings.
+Normal feature, bug fix, or refactor.
 
-- `repo-explorer` nur wenn Repository-Kontext wirklich gebraucht wird.
-- `architect` nur bei mehreren Komponenten, Schnittstellen oder nichttrivialer Entscheidung.
-- Ein Writer: Codex, sonst `claude-builder`.
-- Immer `qa-reviewer`.
-- `regression-hunter` nur bei Kompatibilitäts-, Persistenz-, API-, Lifecycle- oder Migrationsrisiko.
-- `security-reviewer` nur bei Auth, Netzwerk, Dateien, Import/Export, Datenbank, Secrets, Berechtigungen oder klarer Security-Relevanz.
-- Grok nur wenn verfügbar und die Änderung nicht trivial ist oder ein unabhängiger Gegencheck Mehrwert bringt.
-- Höchstens eine Reparaturrunde; zweite nur bei einem konkret verbleibenden HOCH/KRITISCH-Befund.
-- Final Judge nur bei offenen Risiken oder widersprüchlichen Reviews.
+1. Use `repo-explorer` only when repository context is unclear.
+2. Use `architect` only for multi-component or non-trivial design decisions.
+3. Writer: Codex, otherwise `claude-builder`.
+4. Always run `qa-reviewer`.
+5. Add `regression-hunter` only for compatibility/persistence/API/lifecycle/migration risk.
+6. Add `security-reviewer` only for auth, permissions, network, secrets, files, import/export, database, or security-sensitive changes.
+7. Prefer Grok over a redundant generic Claude review when independent model diversity adds value.
+8. Use `final-judge` only for unresolved risk or conflicting reviews.
 
 ### deep
-Für Architektur, Migrationen, Security, Synchronisation, Datenmodelle und große/riskante Änderungen.
+Architecture, migration, synchronization, security, data-model, or high-risk change.
 
-- `repo-explorer` und `architect` verwenden.
-- Externe Zweitmeinung vor Implementierung nur wenn wirklich eine Architekturentscheidung mit mehreren plausiblen Wegen besteht.
-- Ein Writer: Codex, sonst `claude-builder`.
-- Nach Implementierung höchstens zwei gezielte Claude-Reviewer plus Grok, falls verfügbar.
-- Maximal zwei Reparaturrunden.
-- `final-judge` am Ende verwenden.
+1. Run `repo-explorer`, then `architect`.
+2. Before implementation, request an external second opinion only when multiple plausible architectures exist.
+3. Writer: Codex, otherwise `claude-builder`.
+4. Run QA plus at most two risk-specific reviewers. Add Grok when available and useful.
+5. Repair only confirmed findings and rerun only affected reviews/checks.
+6. Finish with `final-judge`.
 
-## Arbeitsablauf
+## External CLI discipline
 
-### 1. Kontext minimieren
+### Codex writer
+Prefer an ephemeral workspace-limited run. When practical, pass the prompt through stdin rather than interpolating user text into a shell command.
 
-Ermittle nur die Dateien und Schnittstellen, die für die Aufgabe nötig sind. Wenn Git vorhanden ist, erfasse knapp `git status` und später den relevanten Diff. Lies keine großen Verzeichnisbäume oder vollständigen Logs ohne Grund.
+Preferred shape:
 
-### 2. Plan nur wenn nötig
+```text
+codex exec --ephemeral --sandbox workspace-write -
+```
 
-Für einfache Aufgaben direkt zum Writer. Für nichttriviale Aufgaben `architect` mit einem kompakten Kontextpaket starten. Der Plan soll nur enthalten:
+Do not use `danger-full-access`. Tell Codex not to commit, push, or reset unrelated changes.
 
-- Ziel
-- betroffene Bereiche
-- 3 bis 7 Umsetzungsschritte
-- Risiken
-- Tests/Akzeptanzkriterien
+### Grok breaker
+Use Grok only for review/analysis, not as a second writer. Keep the run bounded and disable unnecessary features when supported:
 
-### 3. Implementieren
+```text
+grok --no-auto-update -p "<review prompt>" --no-subagents --no-memory --disable-web-search --max-turns 6
+```
 
-Bevorzugt Codex über `codex exec`; wenn Codex fehlt, `claude-builder` einsetzen. Der Writer erhält nur den kompakten Auftrag und darf nicht committen oder pushen.
+Do not use `--always-approve`. Explicitly instruct Grok not to edit files.
 
-### 4. Gezielt reviewen
+## Handoffs
 
-Prüfe den tatsächlichen geänderten Code. Starte nur Reviewer, deren Fachgebiet zum Risiko passt. Übergib ihnen den Auftrag plus relevanten Diff bzw. relevante Dateien, nicht das gesamte Repository.
+Do not re-summarize a good agent result before passing it onward. Reuse the compact handoff directly.
 
-Grok ist, falls verfügbar und sinnvoll, der unabhängige Breaker. Seine Aufgabe: konkrete Edge Cases und Fehlerpfade finden, nicht eine zweite Komplettimplementierung schreiben.
+Writer handoff should contain only:
+- goal and acceptance criteria
+- relevant files/interfaces
+- 3-7 implementation steps when needed
+- risks and required checks
 
-Befunde nur als `KRITISCH`, `HOCH`, `MITTEL`, `NIEDRIG` melden. Niedrige Stilfragen lösen keine Reparaturrunde aus.
+Review findings should contain only:
+`SEVERITY | file/location | concrete problem | expected correction`
 
-### 5. Reparieren und verifizieren
+LOW/style-only findings do not trigger a repair cycle.
 
-Berechtigte Befunde zu einem einzigen kurzen Reparaturauftrag bündeln. Danach nur die betroffenen Checks/Reviewer erneut ausführen, nicht die komplette Pipeline wiederholen.
+## Verification and finish
 
-Führe passende vorhandene Tests, Linter und Builds aus. Keine erfundenen Ergebnisse.
+Run only existing checks relevant to the touched area. Never invent successful results.
 
-### 6. Abschluss
+Final response should be compact:
+- mode + writer
+- optional dependency fallback, if any
+- changed files
+- essential implementation result
+- material review findings
+- checks actually run
+- `READY`, `NOT READY`, or `HUMAN DECISION REQUIRED`
 
-Maximal folgende Punkte ausgeben:
-
-- Modus und verwendeter Writer
-- verwendetes Claude-Modell gemäß Hauptsitzung, falls sichtbar
-- fehlende optionale Abhängigkeiten/Fallbacks
-- geänderte Dateien
-- wesentliche Umsetzung
-- relevante Review-Befunde
-- Tests/Builds
-- Status: `READY`, `NOT READY` oder `HUMAN DECISION REQUIRED`
-
-Merge niemals selbstständig.
+Never merge automatically.
