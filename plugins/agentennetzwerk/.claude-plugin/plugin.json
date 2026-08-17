@@ -2,8 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "agentennetzwerk",
   "displayName": "Agentennetzwerk",
-  "description": "Tokensparendes Multi-Agent-Coding-Netzwerk für Claude Code mit optionaler Codex CLI und Grok Build CLI sowie Claude-Fallbacks.",
-  "version": "0.3.0",
+  "description": "Token-efficient multi-agent coding network for Claude Code with optional Codex CLI and Grok Build, Claude fallbacks, and inherited user-selected model settings.",
+  "version": "0.3.1",
   "author": {
     "name": "Parteicoder",
     "url": "https://github.com/Parteicoder"
