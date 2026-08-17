@@ -2,8 +2,6 @@
 name: security-reviewer
 description: Prüft sicherheitsrelevante Änderungen gezielt auf konkrete Security-, Datenschutz- und Datenintegritätsrisiken.
 tools: Read, Grep, Glob, Bash
-model: sonnet
-effort: medium
 maxTurns: 10
 disallowedTools: Write, Edit
 ---
