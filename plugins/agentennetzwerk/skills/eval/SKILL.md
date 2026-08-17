@@ -64,6 +64,8 @@ The purpose is to measure a real same-model single-agent baseline, not to intent
 
 Use the normal Agentennetzwerk v0.8 routing rules for the selected scenario, but operate only inside the fixture workspace.
 
+Before routing, perform one lightweight local probe for `git --version`, `codex --version`, and `grok version`. Do not install, update, or authenticate anything. Use the same soft fallbacks as normal Agentennetzwerk: Codex missing -> Claude Builder; Grok missing -> continue without external breaker.
+
 - `quick`: writer first; add reviewer only if materially useful.
 - `standard`: architect only if a real design decision remains, then writer + reviewer.
 - `deep`: architect, writer, reviewer, and security reviewer only if the fixture actually crosses a security/data-integrity boundary.
