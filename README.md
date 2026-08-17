@@ -17,6 +17,8 @@ Für den vollständigen Betrieb sind diese Komponenten zwingend erforderlich:
 
 Diese Anforderungen sind nicht nur Dokumentation. Das Plugin enthält einen blockierenden Hook vor dem Start des Skills. Beim direkten Aufruf von `/agentennetzwerk:start` werden die benötigten Programme geprüft. Fehlt Git, Codex oder Grok, wird die Skill-Ausführung abgebrochen.
 
+Wichtig: Claude Codes eingebautes `dependencies`-Feld kann andere Claude-Code-Plugins als Abhängigkeit verwalten, aber keine externen Programme wie Codex oder Grok installieren. Deshalb erzwingt dieses Plugin seine externen Coding-KI-Abhängigkeiten über das Runtime-Gate.
+
 ```text
 Claude Code  = Supervisor + Claude-Agenten
 Codex        = Single Writer / Implementierung
