@@ -2,8 +2,6 @@
 name: architect
 description: Plant nichttriviale Änderungen knapp und testbar, ohne Code zu verändern.
 tools: Read, Grep, Glob, Bash
-model: sonnet
-effort: medium
 maxTurns: 10
 disallowedTools: Write, Edit
 ---
