@@ -60,9 +60,11 @@ MODEL_CALLS=$(( SUBAGENT_CALLS + CODEX_CALLS + GROK_CALLS ))
 
 BUDGET=0
 case "$MODE" in
-  quick) BUDGET=3 ;;
-  standard) BUDGET=4 ;;
-  deep) BUDGET=6 ;;
+  quick|eval-network-quick) BUDGET=3 ;;
+  standard|eval-network-standard) BUDGET=4 ;;
+  deep|eval-network-deep) BUDGET=6 ;;
+  # Baseline evals intentionally have no network call budget.
+  eval-baseline-*) BUDGET=0 ;;
 esac
 UNUSED=0
 if [ "$BUDGET" -gt "$MODEL_CALLS" ]; then
