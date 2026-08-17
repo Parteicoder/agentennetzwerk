@@ -121,6 +121,47 @@ Architect -> Writer -> Reviewer -> targeted Security/Grok -> supervisor verdict
 
 Target budget: <=6 model/agent calls. The supervisor makes the final decision from the code, diff, tests, and unresolved findings. There is no automatic final-judge call.
 
+## Controlled benchmark
+
+v0.8.1 adds a small local benchmark so the routing can be tested with the same tasks instead of relying on anecdotes.
+
+Three isolated scenarios are generated in a temporary Git repository:
+
+- `quick` - small local string-normalization bug
+- `standard` - configuration merge behavior with mutation/regression checks
+- `deep` - schema migration + persistence validation and data-integrity behavior
+
+Each fixture starts with failing tests and has no external dependencies. The grader also fails if the agent changes `TASK.md`, `package.json`, or the tests.
+
+Run a direct-Claude baseline:
+
+```text
+/agentennetzwerk:eval baseline quick
+```
+
+Then run the Agentennetzwerk path separately with the same main Claude model/settings:
+
+```text
+/agentennetzwerk:eval network quick
+```
+
+Repeat with `standard` or `deep` when useful. Keep baseline and network in separate invocations so transcript usage can be measured separately.
+
+Then inspect the comparison:
+
+```text
+/agentennetzwerk:savings
+```
+
+The eval report separates two things deliberately:
+
+- **quality facts**: PASS/FAIL, changed files, insertions/deletions
+- **measured Claude usage**: supervisor + Claude subagent transcript tokens
+
+When matching baseline/network runs exist, the report can show a factual `CLAUDE_ONLY_TOKEN_DELTA_NETWORK_MINUS_BASELINE` for that scenario. This is not claimed as total AI-token savings because Codex/Grok token totals are not silently invented or mixed into the Claude ledger.
+
+Quality comes first: a cheaper benchmark that fails tests is not considered an efficiency win.
+
 ## Agent Teams and worktrees
 
 Agentennetzwerk does not recreate Claude Code's native Agent Teams or worktree isolation.
@@ -162,7 +203,7 @@ Show locally recorded run telemetry with:
 /agentennetzwerk:savings
 ```
 
-Agentennetzwerk reads recorded Claude Code usage fields from main-session and plugin-subagent JSONL transcripts. v0.8 supports telemetry startup for both direct `/agentennetzwerk:start` expansion and model-invoked `Skill` use.
+Agentennetzwerk reads recorded Claude Code usage fields from main-session and plugin-subagent JSONL transcripts. It supports telemetry startup for both direct `/agentennetzwerk:start` expansion and model-invoked `Skill` use, plus dedicated controlled-eval modes.
 
 The report can show:
 
@@ -170,6 +211,7 @@ The report can show:
 - measured Claude plugin-subagent tokens
 - observed Codex/Grok invocation counts
 - unused configured call-budget slots
+- controlled benchmark quality and Claude-only baseline/network deltas
 
 It deliberately does **not** convert skipped calls into imaginary saved tokens. Without a controlled measured baseline:
 
@@ -186,7 +228,7 @@ Agentennetzwerk checks its GitHub version at most once per 24 hours on Claude Co
 When a newer version is found:
 
 ```text
-Agentennetzwerk update available: 0.8.0 -> 0.9.0.
+Agentennetzwerk update available: 0.8.1 -> 0.9.0.
 Run /agentennetzwerk:update to install it manually.
 ```
 
@@ -206,6 +248,7 @@ Then reload when prompted:
 
 ```text
 /agentennetzwerk:start [quick|standard|deep] <task>
+/agentennetzwerk:eval [network|baseline] [quick|standard|deep]
 /agentennetzwerk:doctor
 /agentennetzwerk:autocompact 60
 /agentennetzwerk:savings
@@ -222,8 +265,12 @@ agentennetzwerk/
 │   ├── .claude-plugin/plugin.json
 │   ├── hooks/hooks.json
 │   ├── scripts/
+│   │   ├── eval-fixture.sh
+│   │   ├── eval-grade.sh
+│   │   └── eval-report.sh
 │   ├── skills/
 │   │   ├── start/SKILL.md
+│   │   ├── eval/SKILL.md
 │   │   ├── doctor/SKILL.md
 │   │   ├── autocompact/SKILL.md
 │   │   ├── savings/SKILL.md
@@ -248,7 +295,7 @@ claude plugin validate ./plugins/agentennetzwerk
 claude --plugin-dir ./plugins/agentennetzwerk
 ```
 
-GitHub Actions validates both a pinned Claude Code baseline and the current `latest` release, along with JSON, shell scripts, agent references, prompt-invocation configuration, and the factual token parser.
+GitHub Actions validates both a pinned Claude Code baseline and the current `latest` release, along with JSON, shell scripts, agent references, prompt-invocation configuration, the factual token parser, and the controlled benchmark harness.
 
 ## License
 
