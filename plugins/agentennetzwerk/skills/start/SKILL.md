@@ -23,6 +23,16 @@ If that status is absent, assume the hook did not run and perform exactly one li
 - Grok missing: continue with Claude reviewers and mention reduced model diversity once in the final summary.
 - Git missing: continue file-based, but make no branch, diff, or merge-readiness claims that require Git.
 
+## Context compaction policy
+
+Agentennetzwerk's intended native auto-compaction threshold is **60%**.
+
+- Claude Code: `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=60` applies to the main conversation and Claude subagents when configured before the session starts.
+- Grok Build: `[session] auto_compact_threshold_percent = 60` applies when configured in the user config.
+- Codex: 60% can be pinned exactly only when its effective context window is explicitly known; its native setting is an absolute token limit.
+
+Never disable compaction. Never invent a Codex context-window size. Do not spend a model call merely to configure or verify compaction during a coding task. If the 60% policy is not configured, continue safely and mention `/agentennetzwerk:autocompact 60` once in the final summary. `/agentennetzwerk:doctor` is the factual verification command.
+
 ## Plugin agent identity
 
 Always invoke this plugin's Claude agents by their scoped names so project/user agents with similar names cannot replace them accidentally:
