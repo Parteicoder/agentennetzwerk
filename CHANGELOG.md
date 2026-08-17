@@ -2,6 +2,16 @@
 
 All notable Agentennetzwerk changes are documented here.
 
+## 0.7.0 - 2026-08-17
+
+- Added a non-blocking update checker that checks the GitHub release source at most once every 24 hours on Claude Code startup/resume.
+- Update checks never install anything and fail silently when the network or `curl` is unavailable.
+- When a newer version is detected, Claude Code shows a single notice with the installed and available versions.
+- Added `/agentennetzwerk:update` as the explicit user-approved update action.
+- The manual update command refreshes the `parteicoder-agenten` marketplace and then runs `claude plugin update agentennetzwerk@parteicoder-agenten`.
+- The current session is never silently reloaded; after a successful update the user is told to run `/reload-plugins`.
+- Update-check state is kept in `${CLAUDE_PLUGIN_DATA}` and is cleared after a successful manual update so the next loaded version can check cleanly.
+
 ## 0.6.0 - 2026-08-17
 
 - Added `/agentennetzwerk:autocompact [percent]`, defaulting to 60%, for proactive native context compaction.
