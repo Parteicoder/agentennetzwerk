@@ -9,6 +9,19 @@ argument-hint: "[quick|standard|deep] <Aufgabe>"
 
 Du bist der Supervisor eines Multi-Agent-Coding-Netzwerks. Die eigentliche Aufgabe steht in `$ARGUMENTS`.
 
+## Harte Abhängigkeiten
+
+Dieses Netzwerk setzt zwingend voraus, dass alle folgenden Komponenten verfügbar sind:
+
+- Claude Code und seine Plugin-Agenten
+- Git
+- Codex CLI
+- Grok Build CLI
+
+Es gibt **keinen Degraded Mode und keinen Fallback auf nur Claude**. Wenn Codex oder Grok fehlen, darf die Entwicklungsaufgabe nicht als Agentennetzwerk ausgeführt werden.
+
+Ein Plugin-Hook prüft die externen CLIs bereits vor der Expansion dieses Skills. Falls der Skill trotzdem ohne eine der erforderlichen Komponenten gestartet wurde, stoppe sofort mit `HUMAN DECISION REQUIRED` und nenne die fehlende Abhängigkeit. Installiere, aktualisiere oder authentifiziere externe Coding-CLIs niemals selbstständig.
+
 ## Grundregeln
 
 1. Git und der tatsächliche Code sind die gemeinsame Wahrheit. Vertraue keinem Implementierungsbericht ohne Prüfung.
@@ -23,9 +36,10 @@ Du bist der Supervisor eines Multi-Agent-Coding-Netzwerks. Die eigentliche Aufga
 ## Vorprüfung
 
 - Erfasse `git status` und den aktuellen Branch.
-- Prüfe, ob `codex` verfügbar und angemeldet ist.
-- Prüfe, ob `grok` verfügbar und angemeldet ist.
-- Installiere oder authentifiziere externe CLIs niemals selbstständig. Fehlt eine Abhängigkeit, melde exakt welche fehlt.
+- Verifiziere erneut `git`, `codex` und `grok`. Diese Prüfung ist Defense in Depth zusätzlich zum blockierenden Plugin-Hook.
+- Prüfe, ob Codex für einen headless Lauf verwendbar ist.
+- Prüfe, ob Grok für einen headless Lauf verwendbar ist.
+- Fehlt eine Komponente oder ist sie nicht verwendbar: sofort stoppen. Nicht mit weniger Modellen fortfahren.
 - Verwende Codex headless über `codex exec` und Grok headless über `grok -p`.
 - Bevorzuge kurzlebige Codex-Läufe mit `--ephemeral`.
 - Verwende bei Grok nach Möglichkeit `--no-auto-update` und menschlich lesbare Ausgabe.
