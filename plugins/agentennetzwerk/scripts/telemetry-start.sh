@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 
-# Start factual Agentennetzwerk telemetry for a direct /agentennetzwerk:start invocation.
+# Start factual Agentennetzwerk telemetry for direct or model-invoked start.
 # Stores only local metadata and transcript token snapshots in CLAUDE_PLUGIN_DATA.
 
 set -u
 INPUT="$(cat 2>/dev/null)"
+
+# PreToolUse is attached to the Skill tool generally. Ignore unrelated skills.
+if ! printf '%s' "$INPUT" | grep -Fq 'agentennetzwerk:start'; then
+  exit 0
+fi
 
 extract_json_string() {
   key="$1"
@@ -20,6 +25,10 @@ CWD="$(extract_json_string cwd)"
 DATA="${CLAUDE_PLUGIN_DATA:-${HOME:-.}/.claude/agentennetzwerk}"
 ACTIVE="$DATA/telemetry/active"
 mkdir -p "$ACTIVE" "$DATA/telemetry"
+STATE="$ACTIVE/$SESSION_ID.state"
+
+# Do not reset an active run if the hook is retried.
+[ ! -f "$STATE" ] || exit 0
 
 MODE="auto"
 case "${COMMAND_ARGS%% *}" in
@@ -33,11 +42,10 @@ if [ -n "$TRANSCRIPT" ] && [ -f "$TRANSCRIPT" ]; then
   START_LINES="$(wc -l < "$TRANSCRIPT" 2>/dev/null | tr -d ' ' || echo 0)"
 fi
 
-# Use a simple tab-separated state file. Paths may contain spaces; tabs/newlines are sanitized.
 clean() { printf '%s' "$1" | tr '\t\r\n' '   '; }
 printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
   "$(clean "$TRANSCRIPT")" "$START_TOKENS" "$START_LINES" "$MODE" "$(date +%s)" "$(clean "$CWD")" \
-  > "$ACTIVE/$SESSION_ID.state"
+  > "$STATE"
 
 : > "$ACTIVE/$SESSION_ID.agents.tsv"
 exit 0
