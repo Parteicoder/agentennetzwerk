@@ -13,15 +13,27 @@ Use the smallest workflow that can solve the task safely. Claude subagents inher
 
 ## Capabilities
 
-The soft dependency hook may provide `SOFT_DEPENDENCY_STATUS`.
+Prefer the hook-provided `SOFT_DEPENDENCY_STATUS`.
+
+If that status is absent, assume the hook did not run and perform exactly one lightweight local probe in the current shell for `git --version`, `codex --version`, and `grok version`. Show one short limitation notice if anything is unavailable. Never install, update, or authenticate anything. Do not probe dependencies again later in the workflow.
 
 - Codex available: preferred single writer.
-- Codex missing: use `claude-builder` as single writer.
+- Codex missing: use `agentennetzwerk:claude-builder` as single writer.
 - Grok available: optional independent breaker/reviewer.
 - Grok missing: continue with Claude reviewers and mention reduced model diversity once in the final summary.
 - Git missing: continue file-based, but make no branch, diff, or merge-readiness claims that require Git.
 
-Do not repeatedly probe dependencies. Never install, update, or authenticate external CLIs automatically.
+## Plugin agent identity
+
+Always invoke this plugin's Claude agents by their scoped names so project/user agents with similar names cannot replace them accidentally:
+
+- `agentennetzwerk:claude-builder`
+- `agentennetzwerk:repo-explorer`
+- `agentennetzwerk:architect`
+- `agentennetzwerk:qa-reviewer`
+- `agentennetzwerk:regression-hunter`
+- `agentennetzwerk:security-reviewer`
+- `agentennetzwerk:final-judge`
 
 ## Non-negotiable rules
 
@@ -50,32 +62,32 @@ If no mode is supplied, choose the smallest sufficient mode.
 ### quick
 Small, local change.
 
-1. Find the target directly; use `repo-explorer` only if necessary.
-2. Writer: Codex, otherwise `claude-builder`.
-3. Run `qa-reviewer` on the changed code.
+1. Find the target directly; use `agentennetzwerk:repo-explorer` only if necessary.
+2. Writer: Codex, otherwise `agentennetzwerk:claude-builder`.
+3. Run `agentennetzwerk:qa-reviewer` on the changed code.
 4. Run only the relevant checks. If clean, stop.
 
 ### standard
 Normal feature, bug fix, or refactor.
 
-1. Use `repo-explorer` only when repository context is unclear.
-2. Use `architect` only for multi-component or non-trivial design decisions.
-3. Writer: Codex, otherwise `claude-builder`.
-4. Always run `qa-reviewer`.
-5. Add `regression-hunter` only for compatibility/persistence/API/lifecycle/migration risk.
-6. Add `security-reviewer` only for auth, permissions, network, secrets, files, import/export, database, or security-sensitive changes.
+1. Use `agentennetzwerk:repo-explorer` only when repository context is unclear.
+2. Use `agentennetzwerk:architect` only for multi-component or non-trivial design decisions.
+3. Writer: Codex, otherwise `agentennetzwerk:claude-builder`.
+4. Always run `agentennetzwerk:qa-reviewer`.
+5. Add `agentennetzwerk:regression-hunter` only for compatibility/persistence/API/lifecycle/migration risk.
+6. Add `agentennetzwerk:security-reviewer` only for auth, permissions, network, secrets, files, import/export, database, or security-sensitive changes.
 7. Prefer Grok over a redundant generic Claude review when independent model diversity adds value.
-8. Use `final-judge` only for unresolved risk or conflicting reviews.
+8. Use `agentennetzwerk:final-judge` only for unresolved risk or conflicting reviews.
 
 ### deep
 Architecture, migration, synchronization, security, data-model, or high-risk change.
 
-1. Run `repo-explorer`, then `architect`.
+1. Run `agentennetzwerk:repo-explorer`, then `agentennetzwerk:architect`.
 2. Before implementation, request an external second opinion only when multiple plausible architectures exist.
-3. Writer: Codex, otherwise `claude-builder`.
+3. Writer: Codex, otherwise `agentennetzwerk:claude-builder`.
 4. Run QA plus at most two risk-specific reviewers. Add Grok when available and useful.
 5. Repair only confirmed findings and rerun only affected reviews/checks.
-6. Finish with `final-judge`.
+6. Finish with `agentennetzwerk:final-judge`.
 
 ## External CLI discipline
 
