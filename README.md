@@ -4,9 +4,9 @@ Ein promptbasiertes Multi-Agent-Coding-Netzwerk für Claude Code.
 
 Claude Code übernimmt die Koordination, spezialisierte Claude-Subagents analysieren und reviewen, Codex CLI ist standardmäßig der einzige Code-Writer und Grok Build arbeitet als unabhängiger Gegenprüfer/Breaker.
 
-Es gibt keinen eigenen Python-, Node- oder Server-Orchestrator. Das Netzwerk besteht aus Claude-Code-Plugin-Metadaten, Skills, Agent-Prompts und Hook-Skripten.
+Es gibt keinen eigenen Python-, Node- oder Server-Orchestrator. Das Netzwerk besteht aus Claude-Code-Plugin-Metadaten, Skills, Agent-Prompts und einem kleinen Dependency-Gate.
 
-## Harte Abhängigkeiten
+## Harte Laufzeit-Abhängigkeiten
 
 Für den vollständigen Betrieb sind diese Komponenten zwingend erforderlich:
 
@@ -15,7 +15,9 @@ Für den vollständigen Betrieb sind diese Komponenten zwingend erforderlich:
 - Codex CLI, installiert, im `PATH` verfügbar und authentifiziert
 - Grok Build CLI, installiert, im `PATH` verfügbar und authentifiziert
 
-Das Plugin behandelt Codex und Grok nicht nur als optionale Empfehlung. Beim Start des Agentennetzwerks werden beide CLIs geprüft. Fehlt eine der Abhängigkeiten, wird der Council-Workflow nicht ausgeführt.
+Diese Anforderungen sind nicht nur Dokumentation. Das Plugin enthält einen `UserPromptExpansion`-Hook als Dependency-Gate. Beim direkten Aufruf von `/agentennetzwerk:start` prüft der Hook die benötigten Programme. Fehlt Git, Codex oder Grok, blockiert Claude Code die Skill-Ausführung.
+
+Claude Code unterstützt blockierende Hooks vor der Expansion eines Slash-Commands. Das Agentennetzwerk nutzt genau diesen Mechanismus, damit ein unvollständiges Setup nicht einfach still in einen reduzierten Workflow fällt.
 
 ```text
 Claude Code  = Supervisor + Claude-Agenten
@@ -35,10 +37,13 @@ Benutzer
 /agentennetzwerk:start
    |
    v
-Dependency Check
+Dependency Gate
    |
-   +--> codex vorhanden + erreichbar?
-   +--> grok vorhanden + erreichbar?
+   +--> git vorhanden?
+   +--> codex vorhanden?
+   +--> grok vorhanden?
+   |
+   +--> NEIN -> BLOCK
    |
    v
 Claude Supervisor
@@ -87,6 +92,18 @@ Optional kann ein Modus vorangestellt werden:
 
 Ohne Modus klassifiziert der Supervisor die Aufgabe selbst.
 
+## Dependency-Gate testen
+
+Vor der ersten echten Aufgabe kannst du lokal prüfen:
+
+```text
+codex --version
+grok --version
+git --version
+```
+
+Fehlt eine Abhängigkeit, wird `/agentennetzwerk:start` blockiert und nennt die fehlende CLI.
+
 ## Modi
 
 ### quick
@@ -130,7 +147,7 @@ Grok wird headless über `grok -p` aufgerufen. Seine Hauptrolle ist nicht das Sc
 - maximal zwei Reparaturzyklen
 - Stop bei kritischen Security-Befunden oder möglichem Datenverlust
 - keine Mehrheitsabstimmung zwischen Modellen; Evidenz entscheidet
-- Codex und Grok müssen vor dem Workflow erfolgreich geprüft werden
+- Codex, Grok und Git müssen vor dem Workflow vorhanden sein
 
 ## Entwicklung und Test
 
@@ -178,7 +195,7 @@ agentennetzwerk/
 │       ├── hooks/
 │       │   └── hooks.json
 │       ├── scripts/
-│       │   └── check-dependencies.ps1
+│       │   └── check-dependencies.sh
 │       ├── skills/
 │       │   └── start/
 │       │       └── SKILL.md
