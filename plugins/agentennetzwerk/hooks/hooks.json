@@ -1,6 +1,18 @@
 {
-  "description": "Soft dependency reporting plus local factual token telemetry for Agentennetzwerk runs.",
+  "description": "Soft dependency reporting, manual-update notification, and local factual token telemetry for Agentennetzwerk runs.",
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/check-update.sh\"",
+            "timeout": 6
+          }
+        ]
+      }
+    ],
     "UserPromptExpansion": [
       {
         "matcher": "^agentennetzwerk:start$",
