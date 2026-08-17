@@ -2,11 +2,11 @@
 
 A prompt-driven, token-efficient multi-agent coding network for Claude Code.
 
-Claude Code coordinates specialized Claude subagents. Codex CLI can be used as the preferred writer, while Grok Build can act as an independent breaker/reviewer. Both are optional: if an external coding AI is missing, the plugin continues with Claude-based fallbacks and reports the limitation once per Claude Code session.
+Claude Code acts as the supervisor and coordinates specialized Claude subagents. Codex CLI is the preferred writer when available. Grok Build can provide an independent second-model review. Both external coding AIs are optional and have Claude fallbacks.
 
-There is no custom Python, Node.js, or server-side orchestrator.
+There is no Python, Node.js, or server-side orchestrator.
 
-## Installation
+## Install
 
 Inside Claude Code:
 
@@ -16,7 +16,7 @@ Inside Claude Code:
 /reload-plugins
 ```
 
-Start the network with:
+Start a task:
 
 ```text
 /agentennetzwerk:start <task>
@@ -30,142 +30,150 @@ Optional modes:
 /agentennetzwerk:start deep Redesign the synchronization architecture
 ```
 
-## Claude model selection
+## Choose your Claude model first
 
-Agentennetzwerk does **not** force a specific Claude model.
+Agentennetzwerk does not force a Claude model.
 
-Choose the model you want to use in Claude Code **before** starting the workflow, for example Sonnet or Opus. The plugin subagents inherit the model and effort level of the main Claude Code session by default.
-
-Example:
+Use Claude Code's normal model selector before starting the workflow:
 
 ```text
 /model
 ```
 
-Select Sonnet or Opus, then run:
+Choose Sonnet or Opus. Plugin subagents explicitly use `model: inherit`, so they follow the main Claude Code session model. The plugin saves tokens by controlling context and agent count, not by silently downgrading the model.
 
-```text
-/agentennetzwerk:start standard Implement the feature
-```
+## Optional dependencies
 
-The plugin does not silently downgrade agents to Haiku or another smaller model. Token savings come from smaller context packages, limited agent turns, selective reviews, and short result summaries.
-
-Claude Code also supports `CLAUDE_CODE_SUBAGENT_MODEL` if a user explicitly wants to override the model used by all subagents.
-
-## Dependencies and fallbacks
-
-For the full workflow, the following tools are useful:
+For the full network:
 
 - Claude Code
 - Git
 - Codex CLI
 - Grok Build CLI
 
-Codex and Grok must be installed and authenticated separately. Agentennetzwerk never installs, updates, or logs into external coding CLIs automatically.
+Codex and Grok must be installed and authenticated separately. Agentennetzwerk never installs, updates, or logs into external CLIs automatically.
 
-Missing dependencies do **not** block the plugin. On the first `/agentennetzwerk:start` call of a Claude Code session, a soft dependency hook reports missing tools once. The workflow then continues with the available components:
+Missing tools do not block the plugin. The first `/agentennetzwerk:start` call in a session displays a soft warning and selects a fallback:
 
 ```text
 Codex available  -> Codex is the preferred single writer
 Codex missing    -> claude-builder becomes the single writer
 
-Grok available   -> Grok can act as an independent breaker
-Grok missing     -> targeted Claude reviewer is used when needed; model diversity is reduced
+Grok available   -> optional independent breaker/reviewer
+Grok missing     -> targeted Claude review remains available
 
-Git available    -> status and diff can be verified
+Git available    -> diff/status/branch verification available
 Git missing      -> file-based workflow without Git guarantees
 ```
 
-The dependency hook exits with code `0`. There is no hard gate.
+Run a manual local check at any time:
+
+```text
+/agentennetzwerk:doctor
+```
+
+The doctor command checks local tool availability and reports the active fallback path. It does not install, update, or authenticate anything.
 
 ## Token-efficient design
 
-Agentennetzwerk is designed to reduce unnecessary context usage without forcing a cheaper Claude model.
+The plugin keeps Sonnet or Opus fully available while reducing unnecessary work:
 
-- only agents relevant to the actual task are started
-- subagents inherit the Claude model selected for the main session
-- `quick` normally skips architecture and final-judge stages
-- `standard` launches specialized reviewers only when their risk area applies
-- `deep` uses the fuller review chain only for large or risky changes
-- agent turn counts are capped with `maxTurns`
-- agent outputs are limited to short summaries or a few findings
-- large logs and file contents stay inside subagent contexts where possible
-- reviewers receive the relevant diff or files instead of repeatedly re-reading the whole repository
-- after a fix, only affected checks and reviewers are rerun
-- Agent Teams are not required for the normal workflow
+- only task-relevant agents are started
+- the full skill is manual-only and loads only when invoked
+- subagents keep exploration and logs outside the main context
+- compact handoffs are reused instead of repeatedly summarized
+- reviewers receive relevant diffs/files, not full chat transcripts
+- agent output is intentionally short
+- `maxTurns` caps each Claude subagent
+- after a fix, only affected checks/reviewers run again
+- the workflow stops early when QA and checks are already clean
+- Agent Teams are not required
 
-## Modes
+### Call budgets
+
+Each Claude subagent, Codex run, or Grok run counts as one call.
+
+| Mode | Target budget | Repair policy |
+|---|---:|---|
+| `quick` | <= 3 calls | max 1 repair rerun |
+| `standard` | <= 5 calls | max 1 normally; second only for HIGH/CRITICAL |
+| `deep` | <= 8 calls | max 2 repair reruns |
+
+These are ceilings, not quotas. The supervisor should use fewer calls whenever possible.
+
+## Workflow modes
 
 ### quick
 
-For small, local changes:
+For small local changes:
 
 ```text
-Writer -> QA -> Checks
+Writer -> QA -> relevant checks -> stop
 ```
 
-The Repo Explorer is only used when needed. Usually only one repair cycle is allowed.
+Repository exploration is used only when the target is unclear.
 
 ### standard
 
 For normal features, bug fixes, and refactoring:
 
 ```text
-optional Explorer/Architect -> Writer -> QA -> targeted optional reviews -> Checks
+optional Explorer/Architect -> Writer -> QA -> risk-specific review -> checks
 ```
 
-Grok is used only when available and when an independent second model provides meaningful value.
+Regression, security, Grok, and Final Judge stages are added only when they provide real value.
 
 ### deep
 
-For architecture, migrations, security, synchronization, data models, or other large/risky changes:
+For architecture, migrations, synchronization, security, data models, or high-risk changes:
 
 ```text
 Explorer -> Architect -> Writer -> targeted reviewers + optional Grok -> Final Judge
 ```
 
-A maximum of two repair cycles is allowed.
-
 ## Agents
 
-- `claude-builder`: fallback writer when Codex is unavailable
-- `repo-explorer`: finds only the repository context relevant to the task
-- `architect`: produces a compact plan for non-trivial changes
-- `qa-reviewer`: checks requirements, behavior, and tests
-- `regression-hunter`: used only when compatibility or migration risk exists
-- `security-reviewer`: used only for security-relevant changes
-- `final-judge`: used for deep or disputed workflows
+- `claude-builder`: fallback single writer when Codex is unavailable
+- `repo-explorer`: minimal read-only repository scouting
+- `architect`: compact implementation planning for non-trivial work
+- `qa-reviewer`: requirements, behavior, and test review
+- `regression-hunter`: compatibility/migration/regression review
+- `security-reviewer`: security, privacy, and data-integrity review
+- `final-judge`: evidence-based final decision for deep or disputed runs
 
-All Claude plugin agents inherit the model selected in the main Claude Code session unless the user explicitly overrides subagent model selection through Claude Code configuration.
+All Claude agents inherit the user-selected main-session model.
 
-The network follows a single-writer rule. Review agents are read-only.
-
-## External coding AIs
+## Safer external runs
 
 ### Codex
 
-When available, Codex is invoked through `codex exec` as the preferred writer. It is instructed not to commit, push, or merge automatically.
+When available, Codex is the preferred writer. Agentennetzwerk prefers an ephemeral workspace-limited run:
 
-If Codex is unavailable, `claude-builder` takes over implementation.
+```text
+codex exec --ephemeral --sandbox workspace-write -
+```
+
+Passing the task via stdin is preferred when practical. The workflow does not use `danger-full-access`, and Codex is instructed not to commit, push, merge, or reset unrelated work.
 
 ### Grok Build
 
-When available and useful, Grok is invoked headlessly as an independent breaker. Its job is to find concrete edge cases, failure paths, and weaknesses rather than produce a second full implementation.
+Grok is used as a breaker/reviewer rather than a second writer. The workflow keeps these review runs bounded and avoids unnecessary memory, web search, and subagents when supported.
 
-If Grok is unavailable, the workflow continues with Claude reviewers and reports the reduced model diversity.
+Agentennetzwerk does not use `--always-approve` for Grok reviews.
 
 ## Core rules
 
 - one writer at a time
 - reviewers do not edit code
-- no automatic commits, pushes, merges, or releases
-- unrelated local changes are never reset
-- no automatic installation or authentication of external CLIs
-- critical security or data-integrity risks are escalated to the user
-- evidence, tests, and actual code matter more than model agreement
+- an implementer does not approve its own work
+- no automatic commits, pushes, merges, releases, or destructive resets
+- unrelated local changes are preserved
+- external tools are never installed or authenticated automatically
+- critical security/data-integrity decisions are escalated to the user
+- code and real checks matter more than model agreement
 - only the minimum useful context is passed between agents
 
-## Development and local testing
+## Development
 
 ```bash
 git clone https://github.com/Parteicoder/agentennetzwerk.git
@@ -175,34 +183,36 @@ claude plugin validate ./plugins/agentennetzwerk
 claude --plugin-dir ./plugins/agentennetzwerk
 ```
 
-Then, inside Claude Code:
+Then inside Claude Code:
 
 ```text
-/agentennetzwerk:start standard Analyze this repository and implement a small test change
+/agentennetzwerk:doctor
+/agentennetzwerk:start standard Implement a small test change
 ```
 
 ## Repository structure
 
 ```text
 agentennetzwerk/
-├── .claude-plugin/
-│   └── marketplace.json
-├── plugins/
-│   └── agentennetzwerk/
-│       ├── .claude-plugin/plugin.json
-│       ├── hooks/hooks.json
-│       ├── scripts/
-│       │   ├── check-dependencies.sh
-│       │   └── check-dependencies.ps1
-│       ├── skills/start/SKILL.md
-│       └── agents/
-│           ├── claude-builder.md
-│           ├── repo-explorer.md
-│           ├── architect.md
-│           ├── qa-reviewer.md
-│           ├── regression-hunter.md
-│           ├── security-reviewer.md
-│           └── final-judge.md
+├── .claude-plugin/marketplace.json
+├── plugins/agentennetzwerk/
+│   ├── .claude-plugin/plugin.json
+│   ├── hooks/hooks.json
+│   ├── scripts/
+│   │   ├── check-dependencies.sh
+│   │   └── check-dependencies.ps1
+│   ├── skills/
+│   │   ├── start/SKILL.md
+│   │   └── doctor/SKILL.md
+│   └── agents/
+│       ├── claude-builder.md
+│       ├── repo-explorer.md
+│       ├── architect.md
+│       ├── qa-reviewer.md
+│       ├── regression-hunter.md
+│       ├── security-reviewer.md
+│       └── final-judge.md
+├── CHANGELOG.md
 ├── LICENSE
 └── README.md
 ```
