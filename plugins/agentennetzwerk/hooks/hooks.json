@@ -1,5 +1,5 @@
 {
-  "description": "Soft dependency reporting, manual-update notification, and local factual token telemetry for Agentennetzwerk runs.",
+  "description": "Soft dependency reporting, manual-update notification, local factual token telemetry, and controlled eval telemetry for Agentennetzwerk runs.",
   "hooks": {
     "SessionStart": [
       {
@@ -24,7 +24,17 @@
           },
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/telemetry-start.sh\"",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/telemetry-start.sh\" start",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "^agentennetzwerk:eval$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/telemetry-start.sh\" eval",
             "timeout": 5
           }
         ]
@@ -36,12 +46,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/check-dependencies.sh\"",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/telemetry-start.sh\"",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/telemetry-start.sh\" pretool",
             "timeout": 5
           }
         ]
