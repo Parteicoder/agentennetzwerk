@@ -6,6 +6,8 @@ Claude Code übernimmt die Koordination, spezialisierte Claude-Subagents analysi
 
 Es gibt keinen eigenen Python-, Node- oder Server-Orchestrator. Das Netzwerk besteht aus Claude-Code-Plugin-Metadaten, Skills und Agent-Prompts und nutzt bereits installierte Coding-CLIs.
 
+> **Wichtig:** Für den vollständigen Agentennetzwerk-Workflow benötigt Claude Code alle vorgesehenen Coding-KIs auf dem Rechner. Claude Code ist der Koordinator des Netzwerks, ersetzt Codex und Grok aber nicht. Codex CLI und Grok Build CLI müssen deshalb zusätzlich installiert, ausführbar und beim jeweiligen Anbieter authentifiziert sein. Fehlt eine dieser Coding-KIs, kann der vollständige Council-Workflow mit unabhängiger Implementierung und Gegenprüfung nicht wie vorgesehen ausgeführt werden.
+
 ## Prinzip
 
 ```text
@@ -37,12 +39,27 @@ Final Judge
 
 ## Voraussetzungen
 
-- aktuelles Claude Code
-- Git
-- Codex CLI installiert und authentifiziert, wenn Codex verwendet werden soll
-- Grok Build CLI installiert und authentifiziert, wenn Grok verwendet werden soll
+Für den **vollständigen Betrieb** des Agentennetzwerks werden alle folgenden Komponenten benötigt:
 
-Das Plugin installiert oder authentifiziert Codex und Grok absichtlich nicht selbst.
+- **Claude Code**: Supervisor, Orchestrator und Host für Skill und Claude-Subagents
+- **Git**: gemeinsame Arbeitsgrundlage und Diff-Quelle
+- **Codex CLI**: primärer Coding- und Implementierungsagent; muss installiert und authentifiziert sein
+- **Grok Build CLI**: unabhängiger Coding-KI-Gegenprüfer/Breaker; muss installiert und authentifiziert sein
+
+Claude Code muss die externen Coding-KIs über die Kommandozeile aufrufen können. Die Befehle `codex` und `grok` müssen deshalb im Terminal bzw. im `PATH` verfügbar sein.
+
+Das Plugin installiert oder authentifiziert Codex und Grok absichtlich nicht selbst. Vor der Nutzung des vollständigen Workflows muss der Benutzer die Coding-KIs separat installieren und bei den jeweiligen Diensten anmelden.
+
+Kurz gesagt:
+
+```text
+Claude Code  = Koordination + Claude-Agenten
+Codex        = Implementierung
+Grok         = unabhängige Gegenprüfung
+Git          = gemeinsame Wahrheit
+```
+
+Ohne Codex oder Grok ist Claude Code weiterhin lauffähig, aber das Agentennetzwerk ist dann **nicht vollständig** und kann die vorgesehene Trennung zwischen Supervisor, Writer und unabhängigem Breaker nicht vollständig gewährleisten.
 
 ## Installation direkt aus GitHub
 
