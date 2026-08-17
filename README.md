@@ -1,72 +1,12 @@
 # Agentennetzwerk
 
-Ein promptbasiertes Multi-Agent-Coding-Netzwerk für Claude Code.
+Ein promptbasiertes, tokensparendes Multi-Agent-Coding-Netzwerk für Claude Code.
 
-Claude Code übernimmt die Koordination, spezialisierte Claude-Subagents analysieren und reviewen, Codex CLI ist standardmäßig der einzige Code-Writer und Grok Build arbeitet als unabhängiger Gegenprüfer/Breaker.
+Claude Code koordiniert spezialisierte Claude-Subagents. Codex CLI kann als bevorzugter Writer und Grok Build als unabhängiger Breaker eingebunden werden. Beide sind optional: Fehlen externe Coding-KIs, arbeitet das Plugin mit Claude-Agenten weiter und meldet die Einschränkung.
 
-Es gibt keinen eigenen Python-, Node- oder Server-Orchestrator. Das Netzwerk besteht aus Claude-Code-Plugin-Metadaten, Skills, Agent-Prompts und einem kleinen Dependency-Gate.
+Es gibt keinen eigenen Python-, Node- oder Server-Orchestrator.
 
-## Harte Laufzeit-Abhängigkeiten
-
-Für den vollständigen Betrieb sind diese Komponenten zwingend erforderlich:
-
-- Claude Code
-- Git
-- Codex CLI, installiert, im `PATH` verfügbar und authentifiziert
-- Grok Build CLI, installiert, im `PATH` verfügbar und authentifiziert
-
-Diese Anforderungen sind nicht nur Dokumentation. Das Plugin enthält einen blockierenden Hook vor dem Start des Skills. Beim direkten Aufruf von `/agentennetzwerk:start` werden die benötigten Programme geprüft. Fehlt Git, Codex oder Grok, wird die Skill-Ausführung abgebrochen.
-
-Wichtig: Claude Codes eingebautes `dependencies`-Feld kann andere Claude-Code-Plugins als Abhängigkeit verwalten, aber keine externen Programme wie Codex oder Grok installieren. Deshalb erzwingt dieses Plugin seine externen Coding-KI-Abhängigkeiten über das Runtime-Gate. Der Dependency-Check beendet sich bei einem Fehler mit Exit-Code `2`, wodurch Claude Code die Command-Expansion blockiert.
-
-```text
-Claude Code  = Supervisor + Claude-Agenten
-Codex        = Single Writer / Implementierung
-Grok         = unabhängiger Breaker / Gegenprüfung
-Git          = gemeinsame Wahrheit
-```
-
-Das Plugin installiert oder authentifiziert Codex und Grok absichtlich nicht automatisch. Die Abhängigkeiten müssen auf dem System bereits funktionsfähig sein.
-
-## Prinzip
-
-```text
-Benutzer
-   |
-   v
-/agentennetzwerk:start
-   |
-   v
-Dependency Gate
-   |
-   +--> git vorhanden?
-   +--> codex vorhanden?
-   +--> grok vorhanden?
-   |
-   +--> NEIN -> BLOCK
-   |
-   v
-Claude Supervisor
-   |
-   +--> Repo Explorer
-   +--> Architect
-   |
-   +--> Codex CLI --------> Implementierung (Single Writer)
-   |
-   +--> QA Reviewer
-   +--> Regression Hunter
-   +--> Security Reviewer
-   +--> Grok Build -------> unabhängiger Breaker
-   |
-   v
-Final Judge
-   |
-   +--> READY TO MERGE
-   +--> NOT READY
-   +--> HUMAN DECISION REQUIRED
-```
-
-## Installation direkt aus GitHub
+## Installation
 
 In Claude Code:
 
@@ -76,13 +16,13 @@ In Claude Code:
 /reload-plugins
 ```
 
-Danach steht der Skill zur Verfügung:
+Start:
 
 ```text
 /agentennetzwerk:start <Aufgabe>
 ```
 
-Optional kann ein Modus vorangestellt werden:
+Optional:
 
 ```text
 /agentennetzwerk:start quick Behebe den NullPointer im Import
@@ -90,98 +30,120 @@ Optional kann ein Modus vorangestellt werden:
 /agentennetzwerk:start deep Überarbeite die Synchronisationsarchitektur
 ```
 
-Ohne Modus klassifiziert der Supervisor die Aufgabe selbst.
+## Abhängigkeiten und Fallbacks
 
-## Dependency-Gate testen
+Für den vollen Funktionsumfang sind sinnvoll:
 
-Vor der ersten echten Aufgabe kannst du lokal prüfen:
+- Claude Code
+- Git
+- Codex CLI
+- Grok Build CLI
+
+Codex und Grok müssen separat installiert und authentifiziert werden. Das Plugin installiert oder loggt externe CLIs niemals automatisch ein.
+
+Fehlt eine Abhängigkeit, wird der Workflow **nicht blockiert**. Beim ersten `/agentennetzwerk:start` einer Claude-Code-Sitzung zeigt ein Soft-Dependency-Hook einmalig eine Meldung. Danach läuft das Plugin mit Einschränkungen weiter:
 
 ```text
-codex --version
-grok version
-git --version
+Codex vorhanden  -> Codex ist bevorzugter Single Writer
+Codex fehlt      -> claude-builder übernimmt als Single Writer
+
+Grok vorhanden   -> Grok kann unabhängiger Breaker sein
+Grok fehlt       -> gezielter Claude-Reviewer übernimmt bei Bedarf; geringere Modellvielfalt
+
+Git vorhanden    -> Status und Diff können verifiziert werden
+Git fehlt        -> dateibasierter Workflow ohne Git-Garantien
 ```
 
-Fehlt eine Abhängigkeit, wird `/agentennetzwerk:start` blockiert und nennt die fehlende CLI.
+Der Hook nutzt Exit-Code `0`. Es gibt kein hartes Gate mehr.
 
-Unter Windows liegt zusätzlich `scripts/check-dependencies.ps1` bei. Das eigentliche Plugin-Gate verwendet die Bash-Variante, weil Git for Windows eine Bash-Umgebung mitbringt und Claude Code diese auf Windows bevorzugt, wenn sie verfügbar ist.
+## Tokensparendes Design
+
+Version 0.3.0 ist bewusst auf niedrigen Kontextverbrauch ausgelegt:
+
+- nur die Agenten starten, die für das konkrete Risiko nötig sind
+- `quick` vermeidet Architect und Final Judge normalerweise vollständig
+- `standard` startet Spezialreviewer nur bei passendem Risiko
+- `deep` nutzt die vollständige Kette nur bei großen oder riskanten Änderungen
+- Repo Explorer läuft mit Haiku, low effort und maximal 8 Turns
+- Architect/Reviewer laufen überwiegend mit Sonnet und begrenzten Turns
+- keine Opus-Reviewer im Standardworkflow
+- Agentenausgaben sind auf wenige Stichpunkte bzw. kurze Zusammenfassungen begrenzt
+- große Logs und Dateien bleiben im Subagent-Kontext
+- nur der relevante Diff wird reviewed, nicht jedes Mal das ganze Repository
+- nach einem Fix werden nur betroffene Checks erneut ausgeführt
+- keine Agent Teams im Standardbetrieb
 
 ## Modi
 
 ### quick
 
-Für kleine, lokal begrenzte Änderungen. Weniger Agenten, kurze Review-Kette.
+Kleine lokale Änderung:
+
+```text
+Writer -> QA -> Checks
+```
+
+Repo Explorer nur wenn nötig. Maximal eine Reparaturrunde.
 
 ### standard
 
-Standardworkflow mit Repository-Analyse, Architektur, Codex-Implementierung, Claude-Reviews und Grok-Gegenprüfung.
+Normales Feature oder Refactoring:
+
+```text
+optional Explorer/Architect -> Writer -> QA -> optionale gezielte Reviews -> Checks
+```
+
+Grok wird nur eingesetzt, wenn verfügbar und ein unabhängiger Gegencheck echten Mehrwert bringt.
 
 ### deep
 
-Für Architektur, Migrationen, Security, Datenmodelle und riskante Änderungen. Mehrere unabhängige Analysen werden erstellt, bevor eine Richtung gewählt wird.
+Architektur, Migration, Security, Synchronisation oder große/riskante Änderungen:
+
+```text
+Explorer -> Architect -> Writer -> gezielte Reviewer + optional Grok -> Final Judge
+```
+
+Maximal zwei Reparaturrunden.
 
 ## Agenten
 
-- `repo-explorer`: findet relevante Komponenten und Abhängigkeiten
-- `architect`: entwirft die minimale testbare Lösung
-- `qa-reviewer`: prüft Anforderung, Verhalten und Tests
-- `regression-hunter`: sucht beschädigtes Altverhalten
-- `security-reviewer`: prüft Security, Datenschutz und Datenintegrität
-- `final-judge`: entscheidet unabhängig über Merge-Bereitschaft
+- `claude-builder`: Fallback-Writer, wenn Codex fehlt
+- `repo-explorer`: findet nur relevante Komponenten und Checks
+- `architect`: plant nichttriviale Änderungen knapp
+- `qa-reviewer`: prüft Auftrag, Verhalten und Tests
+- `regression-hunter`: nur bei Kompatibilitäts-/Migrationsrisiko
+- `security-reviewer`: nur bei sicherheitsrelevantem Scope
+- `final-judge`: nur bei Deep- oder strittigen Läufen
 
-Die Review-Agenten sind read-only konzipiert. Standardmäßig darf nur Codex die Implementierung verändern.
+Es gilt das Single-Writer-Prinzip. Reviewer sind read-only.
 
 ## Externe Modelle
 
 ### Codex
 
-Das Netzwerk nutzt Codex im nicht-interaktiven Modus über `codex exec`. Codex ist standardmäßig der Code-Writer. Der Skill weist Codex an, nicht selbst zu committen, zu pushen oder zu mergen.
+Wenn verfügbar, wird Codex über `codex exec` als bevorzugter Writer genutzt. Codex soll nicht selbst committen, pushen oder mergen.
 
 ### Grok Build
 
-Grok wird headless über `grok -p` aufgerufen. Seine Hauptrolle ist nicht das Schreiben, sondern das Brechen der vorgeschlagenen Lösung mit Edge Cases, Gegenbeispielen und unabhängiger Kritik.
+Wenn verfügbar und sinnvoll, wird Grok headless als unabhängiger Breaker eingesetzt. Seine Aufgabe ist das Finden konkreter Edge Cases und Fehlerpfade, nicht eine zweite Komplettimplementierung.
 
 ## Sicherheitsregeln
 
-- Single Writer
+- nur ein Writer gleichzeitig
 - keine automatischen Commits, Pushes oder Merges
 - fremde lokale Änderungen nicht zurücksetzen
-- maximal zwei Reparaturzyklen
-- Stop bei kritischen Security-Befunden oder möglichem Datenverlust
-- keine Mehrheitsabstimmung zwischen Modellen; Evidenz entscheidet
-- Codex, Grok und Git müssen vor dem Workflow vorhanden sein
+- keine automatische Installation oder Authentifizierung externer CLIs
+- kritische Daten-/Security-Risiken an den Benutzer eskalieren
+- Evidenz statt Modellmehrheit
 
 ## Entwicklung und Test
-
-Repository klonen:
 
 ```bash
 git clone https://github.com/Parteicoder/agentennetzwerk.git
 cd agentennetzwerk
-```
-
-Marketplace validieren:
-
-```bash
 claude plugin validate .
-```
-
-Plugin separat validieren:
-
-```bash
 claude plugin validate ./plugins/agentennetzwerk
-```
-
-Plugin lokal ohne Installation testen:
-
-```bash
 claude --plugin-dir ./plugins/agentennetzwerk
-```
-
-Dann in Claude Code:
-
-```text
-/agentennetzwerk:start standard Analysiere dieses Repository und schlage eine kleine Teständerung vor
 ```
 
 ## Repository-Struktur
@@ -192,17 +154,14 @@ agentennetzwerk/
 │   └── marketplace.json
 ├── plugins/
 │   └── agentennetzwerk/
-│       ├── .claude-plugin/
-│       │   └── plugin.json
-│       ├── hooks/
-│       │   └── hooks.json
+│       ├── .claude-plugin/plugin.json
+│       ├── hooks/hooks.json
 │       ├── scripts/
 │       │   ├── check-dependencies.sh
 │       │   └── check-dependencies.ps1
-│       ├── skills/
-│       │   └── start/
-│       │       └── SKILL.md
+│       ├── skills/start/SKILL.md
 │       └── agents/
+│           ├── claude-builder.md
 │           ├── repo-explorer.md
 │           ├── architect.md
 │           ├── qa-reviewer.md
