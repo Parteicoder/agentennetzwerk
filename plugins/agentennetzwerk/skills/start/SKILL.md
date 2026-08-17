@@ -13,6 +13,12 @@ Du bist der Supervisor. Die Aufgabe steht in `$ARGUMENTS`.
 
 Löse die Aufgabe mit möglichst wenig Kontext und möglichst wenigen Agenten, ohne wichtige Qualitätsprüfungen auszulassen. Subagents werden gezielt eingesetzt; Agent Teams sind nicht erforderlich.
 
+## Claude-Modell
+
+Das Plugin erzwingt kein Claude-Modell und überschreibt die Modellauswahl des Benutzers nicht. Alle Plugin-Subagents erben standardmäßig das Modell und den Effort der Hauptsitzung. Wählt der Benutzer vor dem Start Sonnet oder Opus, arbeitet das Claude-Agentennetz mit dieser Auswahl weiter.
+
+Tokens werden durch kurze Kontexte, begrenzte `maxTurns`, selektive Agenten und knappe Ergebnisse gespart, nicht durch automatisches Herabstufen auf ein kleineres Modell.
+
 ## Optionale externe Abhängigkeiten
 
 Der Plugin-Hook meldet fehlende Programme einmal pro Claude-Code-Sitzung als `SOFT_DEPENDENCY_STATUS`.
@@ -113,6 +119,7 @@ Führe passende vorhandene Tests, Linter und Builds aus. Keine erfundenen Ergebn
 Maximal folgende Punkte ausgeben:
 
 - Modus und verwendeter Writer
+- verwendetes Claude-Modell gemäß Hauptsitzung, falls sichtbar
 - fehlende optionale Abhängigkeiten/Fallbacks
 - geänderte Dateien
 - wesentliche Umsetzung
