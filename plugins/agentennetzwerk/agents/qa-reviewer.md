@@ -2,8 +2,6 @@
 name: qa-reviewer
 description: Prüft den relevanten Patch knapp gegen Auftrag, Verhalten und Tests.
 tools: Read, Grep, Glob, Bash
-model: sonnet
-effort: low
 maxTurns: 8
 disallowedTools: Write, Edit
 ---
