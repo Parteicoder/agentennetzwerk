@@ -1,6 +1,6 @@
 ---
 name: doctor
-description: Check Agentennetzwerk's local tools, fallback path, and native auto-compaction configuration.
+description: Check Agentennetzwerk's local tools, update state, fallback path, and native auto-compaction configuration.
 disable-model-invocation: true
 allowed-tools: Bash, Read
 ---
@@ -21,6 +21,29 @@ grok version
 ```
 
 If a command is unavailable, record it as missing and continue. Do not make network calls merely to validate authentication.
+
+## Last known update state
+
+Read only the local update cache if it exists:
+
+```text
+${CLAUDE_PLUGIN_DATA}/update/status
+```
+
+Possible values are:
+
+```text
+UP_TO_DATE|installed|remote
+UPDATE_AVAILABLE|installed|remote
+```
+
+Do not perform a network update check from `doctor`. If the cached state says an update is available, report the versions and suggest:
+
+```text
+/agentennetzwerk:update
+```
+
+If no cache exists, report `UPDATE STATUS UNKNOWN — automatic check has not completed yet`.
 
 ## Auto-compaction status
 
@@ -63,6 +86,8 @@ Return one compact table with:
 - availability/auth status
 - auto-compact status when applicable
 - Agentennetzwerk effect/fallback
+
+Then add one short `Update` line from the cached state.
 
 Fallback rules:
 - Codex missing -> `agentennetzwerk:claude-builder` is the single writer.
