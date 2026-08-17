@@ -15,9 +15,7 @@ Für den vollständigen Betrieb sind diese Komponenten zwingend erforderlich:
 - Codex CLI, installiert, im `PATH` verfügbar und authentifiziert
 - Grok Build CLI, installiert, im `PATH` verfügbar und authentifiziert
 
-Diese Anforderungen sind nicht nur Dokumentation. Das Plugin enthält einen `UserPromptExpansion`-Hook als Dependency-Gate. Beim direkten Aufruf von `/agentennetzwerk:start` prüft der Hook die benötigten Programme. Fehlt Git, Codex oder Grok, blockiert Claude Code die Skill-Ausführung.
-
-Claude Code unterstützt blockierende Hooks vor der Expansion eines Slash-Commands. Das Agentennetzwerk nutzt genau diesen Mechanismus, damit ein unvollständiges Setup nicht einfach still in einen reduzierten Workflow fällt.
+Diese Anforderungen sind nicht nur Dokumentation. Das Plugin enthält einen blockierenden Hook vor dem Start des Skills. Beim direkten Aufruf von `/agentennetzwerk:start` werden die benötigten Programme geprüft. Fehlt Git, Codex oder Grok, wird die Skill-Ausführung abgebrochen.
 
 ```text
 Claude Code  = Supervisor + Claude-Agenten
@@ -98,7 +96,7 @@ Vor der ersten echten Aufgabe kannst du lokal prüfen:
 
 ```text
 codex --version
-grok --version
+grok version
 git --version
 ```
 
