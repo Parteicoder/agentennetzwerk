@@ -25,7 +25,7 @@ AGENTS="$ACTIVE/$SESSION_ID.agents.tsv"
 RUNS="$DATA/telemetry/runs.tsv"
 [ -f "$STATE" ] || exit 0
 
-IFS='	' read -r TRANSCRIPT START_TOKENS START_LINES MODE STARTED_AT CWD < "$STATE"
+IFS='\t' read -r TRANSCRIPT START_TOKENS START_LINES MODE STARTED_AT CWD < "$STATE"
 START_TOKENS="${START_TOKENS:-0}"
 START_LINES="${START_LINES:-0}"
 MODE="${MODE:-auto}"
@@ -61,8 +61,8 @@ MODEL_CALLS=$(( SUBAGENT_CALLS + CODEX_CALLS + GROK_CALLS ))
 BUDGET=0
 case "$MODE" in
   quick) BUDGET=3 ;;
-  standard) BUDGET=5 ;;
-  deep) BUDGET=8 ;;
+  standard) BUDGET=4 ;;
+  deep) BUDGET=6 ;;
 esac
 UNUSED=0
 if [ "$BUDGET" -gt "$MODEL_CALLS" ]; then
