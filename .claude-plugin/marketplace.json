@@ -4,15 +4,15 @@
     "name": "Parteicoder",
     "url": "https://github.com/Parteicoder"
   },
-  "description": "Claude-Code-Plugins von Parteicoder für Multi-Agent-Entwicklung.",
-  "version": "0.3.0",
+  "description": "Claude Code plugins by Parteicoder for multi-agent development.",
+  "version": "0.3.1",
   "plugins": [
     {
       "name": "agentennetzwerk",
       "displayName": "Agentennetzwerk",
       "source": "./plugins/agentennetzwerk",
-      "description": "Tokensparendes Coding-Council mit Claude-Agenten sowie optional Codex CLI und Grok Build.",
-      "version": "0.3.0",
+      "description": "Token-efficient coding council with Claude agents plus optional Codex CLI and Grok Build. Claude subagents inherit the user's selected session model.",
+      "version": "0.3.1",
       "author": {
         "name": "Parteicoder",
         "url": "https://github.com/Parteicoder"
