@@ -91,13 +91,13 @@ codex exec --ephemeral --sandbox workspace-write -
 Do not use `danger-full-access`. Tell Codex not to commit, push, or reset unrelated changes.
 
 ### Grok breaker
-Use Grok only for review/analysis, not as a second writer. Keep the run bounded and disable unnecessary features when supported:
+Use Grok only for review/analysis, not as a second writer. Keep the run bounded, remove edit capability, and disable unnecessary features when supported:
 
 ```text
-grok --no-auto-update -p "<review prompt>" --no-subagents --no-memory --disable-web-search --max-turns 6
+grok --no-auto-update -p "<review prompt>" --disallowed-tools Edit --no-subagents --no-memory --disable-web-search --max-turns 6
 ```
 
-Do not use `--always-approve`. Explicitly instruct Grok not to edit files.
+Do not use `--always-approve`. The review prompt must also explicitly forbid file modification.
 
 ## Handoffs
 
