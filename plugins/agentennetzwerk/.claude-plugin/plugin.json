@@ -1,8 +1,9 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "agentennetzwerk",
   "displayName": "Agentennetzwerk",
-  "description": "Promptbasiertes Multi-Agent-Coding-Netzwerk für Claude Code mit Claude-Agenten, Codex CLI und Grok Build.",
-  "version": "0.1.0",
+  "description": "Promptbasiertes Multi-Agent-Coding-Netzwerk für Claude Code mit verpflichtender Codex CLI und Grok Build CLI.",
+  "version": "0.2.0",
   "author": {
     "name": "Parteicoder",
     "url": "https://github.com/Parteicoder"
@@ -10,5 +11,5 @@
   "homepage": "https://github.com/Parteicoder/agentennetzwerk",
   "repository": "https://github.com/Parteicoder/agentennetzwerk",
   "license": "AGPL-3.0",
-  "keywords": ["multi-agent", "coding", "claude-code", "codex", "grok"]
+  "keywords": ["multi-agent", "coding", "claude-code", "codex", "grok", "coding-agents"]
 }
