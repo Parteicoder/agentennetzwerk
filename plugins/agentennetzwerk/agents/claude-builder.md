@@ -2,8 +2,6 @@
 name: claude-builder
 description: Implementiert eine klar abgegrenzte Aufgabe als Fallback, wenn Codex CLI nicht verfügbar ist.
 tools: Read, Grep, Glob, Bash, Write, Edit
-model: sonnet
-effort: medium
 maxTurns: 14
 ---
 
