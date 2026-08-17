@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
 # Sum actual Claude token usage recorded in a Claude Code JSONL transcript.
-# Counts non-cached input, cache creation, cache reads, and output tokens.
-# This reads recorded usage fields only; it does not estimate or tokenize text.
+# Counts recorded API usage fields only; it never estimates tokens from text.
 
 set -u
 FILE="${1:-}"
@@ -12,8 +11,39 @@ if [ -z "$FILE" ] || [ ! -f "$FILE" ]; then
   exit 0
 fi
 
+# Prefer structural JSON parsing when jq is available. Keep an awk fallback so
+# telemetry remains optional and does not introduce a new dependency.
+if command -v jq >/dev/null 2>&1; then
+  jq -rs '
+    [ .[]
+      | select(.type == "assistant")
+      | .message as $m
+      | select(($m.usage // null) != null)
+      | {
+          id: ($m.id // null),
+          tokens: (
+            (($m.usage.input_tokens // 0) | tonumber) +
+            (($m.usage.cache_creation_input_tokens // 0) | tonumber) +
+            (($m.usage.cache_read_input_tokens // 0) | tonumber) +
+            (($m.usage.output_tokens // 0) | tonumber)
+          )
+        }
+    ]
+    | reduce .[] as $item (
+        {seen: {}, total: 0};
+        if ($item.id != null and (.seen[$item.id] // false))
+        then .
+        else .total += $item.tokens
+          | if $item.id != null then .seen[$item.id] = true else . end
+        end
+      )
+    | .total
+  ' "$FILE" 2>/dev/null || echo 0
+  exit 0
+fi
+
 awk '
-function fieldnum(line, key,    re, hit, n) {
+function fieldnum(line, key,    re, hit) {
   re = "\"" key "\"[[:space:]]*:[[:space:]]*[0-9]+"
   if (match(line, re)) {
     hit = substr(line, RSTART, RLENGTH)
@@ -24,21 +54,18 @@ function fieldnum(line, key,    re, hit, n) {
   return 0
 }
 {
-  # Claude Code transcript assistant records contain the API usage object.
   if ($0 !~ /\"type\"[[:space:]]*:[[:space:]]*\"assistant\"/ || $0 !~ /\"usage\"[[:space:]]*:/) next
 
-  # Deduplicate message IDs defensively if the same assistant response is serialized more than once.
   id = ""
   if (match($0, /\"id\"[[:space:]]*:[[:space:]]*\"msg_[^\"]+\"/)) {
     id = substr($0, RSTART, RLENGTH)
     if (seen[id]++) next
   }
 
-  input = fieldnum($0, "input_tokens")
-  output = fieldnum($0, "output_tokens")
-  cache_create = fieldnum($0, "cache_creation_input_tokens")
-  cache_read = fieldnum($0, "cache_read_input_tokens")
-  total += input + output + cache_create + cache_read
+  total += fieldnum($0, "input_tokens")
+  total += fieldnum($0, "cache_creation_input_tokens")
+  total += fieldnum($0, "cache_read_input_tokens")
+  total += fieldnum($0, "output_tokens")
 }
 END { print total + 0 }
 ' "$FILE"
