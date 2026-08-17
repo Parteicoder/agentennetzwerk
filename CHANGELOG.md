@@ -2,6 +2,23 @@
 
 All notable Agentennetzwerk changes are documented here.
 
+## 0.8.0 - 2026-08-17
+
+- Enabled model invocation for the `start` skill with a deliberately narrow description, so explicit natural-language requests such as "use Agentennetzwerk" can trigger the plugin while ordinary coding requests stay on Claude Code's normal path.
+- Added the same soft dependency and telemetry startup path for model-invoked `Skill` calls as for direct `/agentennetzwerk:start` expansion.
+- Reduced Claude plugin agents from seven to four: `claude-builder`, `architect`, `reviewer`, and `security-reviewer`.
+- Removed the dedicated `repo-explorer`; ordinary scouting stays in the supervisor and non-trivial exploration is folded into `architect`.
+- Replaced separate QA and regression agents with one consolidated read-only `reviewer` that checks requirements, tests, compatibility, and regression risk in one pass.
+- Removed the automatic `final-judge`; the supervisor now makes the final readiness decision from the actual code, diff, tests, and unresolved material findings.
+- Recalibrated call budgets to quick <=3 hard cap, standard <=4 target, and deep <=6 target, with earlier exits and targeted reruns only.
+- Made Grok an explicitly optional diversity review rather than a ritual duplicate reviewer.
+- Added guidance to prefer Claude Code's native Agent Teams/worktree isolation only when parallel independent work is explicitly requested; the default workflow remains single-writer.
+- Tightened writer/architect/security prompts and decision-complete handoffs so agents reference paths and symbols rather than receiving pasted source or full chat history.
+- Reframed `/agentennetzwerk:autocompact 60` as optional proactive setup rather than a network prerequisite; `doctor` now reports deliberate non-60 settings factually instead of treating them as a limitation.
+- Hardened factual token parsing with structural `jq` parsing when available plus a dependency-free awk fallback.
+- Updated telemetry role tracking and call budgets for the streamlined architecture.
+- CI now validates natural-prompt configuration, current agent references, PowerShell syntax, and both a pinned Claude Code baseline and the current `latest` release.
+
 ## 0.7.0 - 2026-08-17
 
 - Added a non-blocking update checker that checks the GitHub release source at most once every 24 hours on Claude Code startup/resume.
