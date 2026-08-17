@@ -1,0 +1,41 @@
+name: Validate Claude Code plugin
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code@latest
+
+      - name: Validate marketplace
+        run: claude plugin validate .
+
+      - name: Validate plugin
+        run: claude plugin validate ./plugins/agentennetzwerk
+
+      - name: Validate JSON syntax
+        run: |
+          jq empty .claude-plugin/marketplace.json
+          jq empty plugins/agentennetzwerk/.claude-plugin/plugin.json
+          jq empty plugins/agentennetzwerk/hooks/hooks.json
+
+      - name: Validate Bash dependency probe
+        run: bash -n plugins/agentennetzwerk/scripts/check-dependencies.sh
