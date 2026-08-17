@@ -17,7 +17,7 @@ AGENT_TYPE="$(extract_json_string agent_type)"
 AGENT_TRANSCRIPT="$(extract_json_string agent_transcript_path)"
 
 case "$AGENT_TYPE" in
-  agentennetzwerk:claude-builder|agentennetzwerk:repo-explorer|agentennetzwerk:architect|agentennetzwerk:qa-reviewer|agentennetzwerk:regression-hunter|agentennetzwerk:security-reviewer|agentennetzwerk:final-judge) ;;
+  agentennetzwerk:claude-builder|agentennetzwerk:architect|agentennetzwerk:reviewer|agentennetzwerk:security-reviewer) ;;
   *) exit 0 ;;
 esac
 
