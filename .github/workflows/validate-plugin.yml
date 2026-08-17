@@ -12,6 +12,10 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        claude-version: ["2.1.212", "latest"]
 
     steps:
       - name: Checkout
@@ -23,7 +27,10 @@ jobs:
           node-version: "20"
 
       - name: Install Claude Code CLI
-        run: npm install -g @anthropic-ai/claude-code@latest
+        run: npm install -g "@anthropic-ai/claude-code@${{ matrix.claude-version }}"
+
+      - name: Show Claude Code version
+        run: claude --version
 
       - name: Validate marketplace
         run: claude plugin validate .
@@ -40,11 +47,41 @@ jobs:
       - name: Validate Bash scripts
         run: bash -n plugins/agentennetzwerk/scripts/*.sh
 
+      - name: Validate PowerShell scripts
+        shell: pwsh
+        run: |
+          Get-ChildItem plugins/agentennetzwerk/scripts -Filter *.ps1 | ForEach-Object {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              $errors | ForEach-Object { Write-Error $_.Message }
+              exit 1
+            }
+          }
+
+      - name: Validate streamlined routing
+        run: |
+          test -f plugins/agentennetzwerk/agents/claude-builder.md
+          test -f plugins/agentennetzwerk/agents/architect.md
+          test -f plugins/agentennetzwerk/agents/reviewer.md
+          test -f plugins/agentennetzwerk/agents/security-reviewer.md
+          test ! -e plugins/agentennetzwerk/agents/repo-explorer.md
+          test ! -e plugins/agentennetzwerk/agents/qa-reviewer.md
+          test ! -e plugins/agentennetzwerk/agents/regression-hunter.md
+          test ! -e plugins/agentennetzwerk/agents/final-judge.md
+          ! grep -q '^disable-model-invocation:[[:space:]]*true' plugins/agentennetzwerk/skills/start/SKILL.md
+          ! grep -R -E 'agentennetzwerk:(repo-explorer|qa-reviewer|regression-hunter|final-judge)' plugins/agentennetzwerk
+          grep -q 'agentennetzwerk:reviewer' plugins/agentennetzwerk/skills/start/SKILL.md
+          grep -q '"PreToolUse"' plugins/agentennetzwerk/hooks/hooks.json
+          grep -q '"matcher": "^Skill$"' plugins/agentennetzwerk/hooks/hooks.json
+
       - name: Test factual token parser
         run: |
           cat > /tmp/agentennetzwerk-token-test.jsonl <<'EOF'
           {"type":"assistant","message":{"id":"msg_test_1","usage":{"input_tokens":10,"cache_creation_input_tokens":20,"cache_read_input_tokens":30,"output_tokens":40}}}
           {"type":"assistant","message":{"id":"msg_test_2","usage":{"input_tokens":5,"cache_creation_input_tokens":0,"cache_read_input_tokens":15,"output_tokens":10}}}
+          {"type":"assistant","message":{"id":"msg_test_1","usage":{"input_tokens":10,"cache_creation_input_tokens":20,"cache_read_input_tokens":30,"output_tokens":40}}}
           EOF
           result="$(bash plugins/agentennetzwerk/scripts/token-usage.sh /tmp/agentennetzwerk-token-test.jsonl)"
           test "$result" = "130"
